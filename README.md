@@ -1,25 +1,15 @@
-# 🐙 OctoVault
+# OctoVault
 
-Self-hosted personal file vault.
+A lightweight, self-hosted personal file vault. Beautiful, simple, API-friendly.
 
-## Quick Start
+## Features
+- 📁 File browsing, upload, download
+- 🏷️ Tag-based organization
+- 🔍 Search by name, tag, type
+- 🖼️ Image & PDF preview
+- 📱 PWA mobile support
+- 🤖 REST API for automation
+- 🐳 Docker one-liner deployment
 
-```bash
-cp .env.example .env
-docker compose up -d --build
-```
-
-Open http://localhost:5679
-
-## Dev
-
-Backend:
-```bash
-cd backend && pip install -r requirements.txt
-uvicorn app.main:app --reload --port 5679
-```
-
-Frontend:
-```bash
-cd frontend && npm install && npm run dev
-```
+## License
+MIT
