@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { useStore } from './store';
 import Login from './pages/Login';
+import Browse from './pages/Browse';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 
@@ -13,25 +14,13 @@ function ProtectedRoute() {
 function AppLayout() {
   return (
     <div className="h-screen flex flex-col bg-gray-950 text-white">
-      <Header onUploadClick={() => {/* TODO: open upload modal */}} />
+      <Header onUploadClick={() => window.__octovaultOpenUpload?.()} />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
         <main className="flex-1 overflow-y-auto p-6">
           <Outlet />
         </main>
       </div>
-    </div>
-  );
-}
-
-function Browse() {
-  const { viewMode } = useStore();
-  return (
-    <div>
-      <h2 className="text-xl font-semibold mb-4">Your Files</h2>
-      <p className="text-gray-500">
-        {viewMode === 'grid' ? 'Grid' : 'List'} view — file browser coming in Phase 6
-      </p>
     </div>
   );
 }
