@@ -5,6 +5,8 @@ import FileGrid from '../components/FileGrid';
 import FileList from '../components/FileList';
 import Upload from '../components/Upload';
 import Preview from '../components/Preview';
+import TagBar from '../components/TagBar';
+import BulkBar from '../components/BulkBar';
 
 const SORT_OPTIONS = [
   { value: 'created_at:desc', label: 'Newest first' },
@@ -76,11 +78,15 @@ export default function Browse() {
 
   useEffect(() => { fetchFiles(); }, [fetchFiles]);
 
+  const refreshTags = useCallback(() => {
+    getTags().then((r) => setTags(r.data?.tags || r.data || [])).catch(() => {});
+  }, [setTags]);
+
   // Load tags + stats on mount
   useEffect(() => {
-    getTags().then((r) => setTags(r.data?.tags || r.data || [])).catch(() => {});
+    refreshTags();
     getStats().then((r) => setStats(r.data)).catch(() => {});
-  }, [setTags, setStats]);
+  }, [refreshTags, setStats]);
 
   const handleUploadComplete = () => {
     setShowUpload(false);
@@ -113,6 +119,12 @@ export default function Browse() {
           </button>
         </div>
       </div>
+
+      {/* Tag bar */}
+      <TagBar onRefreshTags={refreshTags} />
+
+      {/* Bulk operations bar */}
+      <BulkBar onRefresh={fetchFiles} />
 
       {/* Upload modal */}
       {showUpload && (

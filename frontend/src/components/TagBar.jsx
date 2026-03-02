@@ -1,0 +1,171 @@
+import { useState } from 'react';
+import { Plus, X, Pencil, Trash2, Check } from 'lucide-react';
+import { useStore } from '../store';
+import { createTag, updateTag, deleteTag as apiDeleteTag } from '../api';
+
+const PRESET_COLORS = [
+  '#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f97316',
+  '#eab308', '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6',
+];
+
+function TagChip({ tag, selected, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
+        selected
+          ? 'ring-2 ring-offset-1 ring-offset-gray-950'
+          : 'hover:brightness-110'
+      }`}
+      style={{
+        backgroundColor: tag.color + (selected ? '44' : '22'),
+        color: tag.color,
+        ringColor: selected ? tag.color : undefined,
+      }}
+    >
+      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: tag.color }} />
+      {tag.name}
+    </button>
+  );
+}
+
+function TagModal({ tag, onClose, onSaved }) {
+  const [name, setName] = useState(tag?.name || '');
+  const [color, setColor] = useState(tag?.color || PRESET_COLORS[0]);
+  const [saving, setSaving] = useState(false);
+
+  const handleSave = async () => {
+    if (!name.trim()) return;
+    setSaving(true);
+    try {
+      if (tag?.id) {
+        await updateTag(tag.id, { name: name.trim(), color });
+      } else {
+        await createTag({ name: name.trim(), color });
+      }
+      onSaved();
+      onClose();
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Failed to save tag');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="bg-gray-900 border border-gray-700 rounded-xl p-6 w-full max-w-sm shadow-2xl">
+        <h3 className="text-lg font-semibold text-white mb-4">{tag?.id ? 'Edit Tag' : 'New Tag'}</h3>
+        <input
+          autoFocus
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Tag name"
+          className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-ocean-500 mb-4"
+          onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+        />
+        <div className="flex flex-wrap gap-2 mb-4">
+          {PRESET_COLORS.map((c) => (
+            <button
+              key={c}
+              onClick={() => setColor(c)}
+              className={`w-7 h-7 rounded-full transition-all ${color === c ? 'ring-2 ring-offset-2 ring-offset-gray-900 ring-white scale-110' : 'hover:scale-105'}`}
+              style={{ backgroundColor: c }}
+            />
+          ))}
+        </div>
+        <div className="flex justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-400 hover:text-white transition">Cancel</button>
+          <button
+            onClick={handleSave}
+            disabled={saving || !name.trim()}
+            className="px-4 py-2 text-sm bg-ocean-600 hover:bg-ocean-500 text-white rounded-lg transition disabled:opacity-40"
+          >
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function TagBar({ onRefreshTags }) {
+  const { tags, selectedTag, setSelectedTag } = useStore();
+  const [showModal, setShowModal] = useState(false);
+  const [editTag, setEditTag] = useState(null);
+  const [showManage, setShowManage] = useState(false);
+
+  const handleDelete = async (tag) => {
+    if (!confirm(`Delete tag "${tag.name}"? This won't delete the files.`)) return;
+    try {
+      await apiDeleteTag(tag.id);
+      if (selectedTag === tag.id) setSelectedTag(null);
+      onRefreshTags();
+    } catch (err) {
+      alert('Failed to delete tag');
+    }
+  };
+
+  const handleSaved = () => {
+    onRefreshTags();
+  };
+
+  return (
+    <div className="space-y-2">
+      {/* Tag chips row */}
+      <div className="flex items-center gap-2 flex-wrap">
+        {tags.map((tag) => (
+          <TagChip
+            key={tag.id}
+            tag={tag}
+            selected={selectedTag === tag.id}
+            onClick={() => setSelectedTag(selectedTag === tag.id ? null : tag.id)}
+          />
+        ))}
+        <button
+          onClick={() => { setEditTag(null); setShowModal(true); }}
+          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs text-gray-500 hover:text-white hover:bg-gray-800 border border-dashed border-gray-700 transition"
+        >
+          <Plus className="w-3 h-3" /> Tag
+        </button>
+        {tags.length > 0 && (
+          <button
+            onClick={() => setShowManage(!showManage)}
+            className="text-xs text-gray-600 hover:text-gray-400 transition ml-1"
+          >
+            {showManage ? 'Done' : 'Manage'}
+          </button>
+        )}
+      </div>
+
+      {/* Manage list */}
+      {showManage && tags.length > 0 && (
+        <div className="bg-gray-900/50 border border-gray-800 rounded-lg p-3 space-y-1">
+          {tags.map((tag) => (
+            <div key={tag.id} className="flex items-center gap-2 group">
+              <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: tag.color }} />
+              <span className="text-sm text-gray-300 flex-1 truncate">{tag.name}</span>
+              <button
+                onClick={() => { setEditTag(tag); setShowModal(true); }}
+                className="p-1 text-gray-600 hover:text-white opacity-0 group-hover:opacity-100 transition"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={() => handleDelete(tag)}
+                className="p-1 text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Create/Edit modal */}
+      {showModal && (
+        <TagModal tag={editTag} onClose={() => setShowModal(false)} onSaved={handleSaved} />
+      )}
+    </div>
+  );
+}

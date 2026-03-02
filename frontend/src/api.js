@@ -56,6 +56,12 @@ export const deleteTag = (id) => api.delete(`/tags/${id}`);
 export const assignTags = (fileId, tagIds) => api.post(`/files/${fileId}/tags`, { tag_ids: tagIds });
 export const removeTag = (fileId, tagId) => api.delete(`/files/${fileId}/tags/${tagId}`);
 
+// Bulk operations
+export const bulkAssignTags = (fileIds, tagIds) =>
+  api.post('/files/bulk/tags', { file_ids: fileIds, tag_ids: tagIds });
+export const bulkDeleteFiles = (fileIds) =>
+  api.post('/files/bulk/delete', { file_ids: fileIds });
+
 // Stats
 export const getStats = () => api.get('/stats');
 

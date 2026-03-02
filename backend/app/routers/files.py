@@ -61,20 +61,39 @@ async def upload_file(
     return db_file
 
 
-@router.get("", response_model=list[FileOut])
+class PaginatedFiles(BaseModel):
+    files: list[FileOut]
+    total: int
+    page: int
+    per_page: int
+    total_pages: int
+
+
+@router.get("", response_model=PaginatedFiles)
 def list_files(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
-    tag: int | None = Query(None, description="Filter by tag ID"),
+    tag_id: int | None = Query(None, description="Filter by tag ID"),
+    sort_by: str = Query("created_at", description="Sort field"),
+    sort_dir: str = Query("desc", description="asc or desc"),
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    offset = (page - 1) * per_page
     q = db.query(File)
-    if tag is not None:
-        q = q.filter(File.tags.any(Tag.id == tag))
-    files = q.order_by(File.created_at.desc()).offset(offset).limit(per_page).all()
-    return files
+    if tag_id is not None:
+        q = q.filter(File.tags.any(Tag.id == tag_id))
+
+    # Sorting
+    sort_col = getattr(File, sort_by, File.created_at)
+    q = q.order_by(sort_col.desc() if sort_dir == "desc" else sort_col.asc())
+
+    total = q.count()
+    offset = (page - 1) * per_page
+    files = q.offset(offset).limit(per_page).all()
+    return PaginatedFiles(
+        files=files, total=total, page=page, per_page=per_page,
+        total_pages=max(1, -(-total // per_page)),
+    )
 
 
 @router.get("/search", response_model=list[FileOut])
@@ -200,3 +219,51 @@ def remove_tag(
     f.tags.remove(tag)
     db.commit()
     return {"detail": "Tag removed"}
+
+
+class BulkTagRequest(BaseModel):
+    file_ids: list[int]
+    tag_ids: list[int]
+
+
+@router.post("/bulk/tags")
+def bulk_assign_tags(
+    req: BulkTagRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Assign tags to multiple files at once."""
+    files = db.query(File).filter(File.id.in_(req.file_ids)).all()
+    tags = db.query(Tag).filter(Tag.id.in_(req.tag_ids)).all()
+    for f in files:
+        for tag in tags:
+            if tag not in f.tags:
+                f.tags.append(tag)
+    db.commit()
+    return {"detail": f"Tagged {len(files)} files with {len(tags)} tags"}
+
+
+class BulkDeleteRequest(BaseModel):
+    file_ids: list[int]
+
+
+@router.post("/bulk/delete")
+def bulk_delete_files(
+    req: BulkDeleteRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Delete multiple files at once."""
+    files = db.query(File).filter(File.id.in_(req.file_ids)).all()
+    count = 0
+    for f in files:
+        try:
+            delete_file(f.path)
+            if f.thumbnail_path:
+                delete_file(f.thumbnail_path)
+        except Exception:
+            pass
+        db.delete(f)
+        count += 1
+    db.commit()
+    return {"detail": f"Deleted {count} files"}

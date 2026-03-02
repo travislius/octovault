@@ -1,6 +1,7 @@
-import { File, Image, FileText, Film, Music, Archive, Code, MoreVertical, Trash2, Download } from 'lucide-react';
+import { File, Image, FileText, Film, Music, Archive, Code, MoreVertical, Trash2, Download, Check } from 'lucide-react';
 import { useState } from 'react';
 import { getThumb, downloadFile, deleteFile } from '../api';
+import { useStore } from '../store';
 
 function formatBytes(bytes) {
   if (!bytes) return '0 B';
@@ -25,7 +26,7 @@ function mimeIcon(mime) {
   return <File className="w-10 h-10" />;
 }
 
-function FileCard({ file, onPreview, onRefresh }) {
+function FileCard({ file, onPreview, onRefresh, selected, onToggleSelect }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [imgError, setImgError] = useState(false);
   const hasThumb = file.thumbnail_path || file.mime_type?.startsWith('image/');
@@ -63,6 +64,16 @@ function FileCard({ file, onPreview, onRefresh }) {
       onClick={() => onPreview(file)}
       className="group relative bg-gray-900 border border-gray-800 rounded-xl overflow-hidden cursor-pointer hover:border-gray-600 hover:shadow-lg hover:shadow-ocean-500/5 transition-all duration-200"
     >
+      {/* Selection checkbox */}
+      <div
+        onClick={(e) => { e.stopPropagation(); onToggleSelect?.(file.id); }}
+        className={`absolute top-2 left-2 z-10 w-6 h-6 rounded-md border-2 flex items-center justify-center transition cursor-pointer ${
+          selected ? 'bg-ocean-500 border-ocean-500' : 'border-gray-600 bg-gray-900/60 opacity-0 group-hover:opacity-100'
+        }`}
+      >
+        {selected && <Check className="w-3.5 h-3.5 text-white" />}
+      </div>
+
       {/* Thumbnail area */}
       <div className="aspect-square bg-gray-850 flex items-center justify-center overflow-hidden bg-gray-800/50">
         {hasThumb && !imgError ? (
@@ -136,10 +147,19 @@ function FileCard({ file, onPreview, onRefresh }) {
 }
 
 export default function FileGrid({ files, onPreview, onRefresh }) {
+  const { selectedFiles, toggleFileSelection } = useStore();
+
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
       {files.map((file) => (
-        <FileCard key={file.id} file={file} onPreview={onPreview} onRefresh={onRefresh} />
+        <FileCard
+          key={file.id}
+          file={file}
+          onPreview={onPreview}
+          onRefresh={onRefresh}
+          selected={selectedFiles.has(file.id)}
+          onToggleSelect={toggleFileSelection}
+        />
       ))}
     </div>
   );

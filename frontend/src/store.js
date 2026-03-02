@@ -29,6 +29,18 @@ export const useStore = create((set, get) => ({
   selectedTag: null,
   setSelectedTag: (selectedTag) => set({ selectedTag }),
 
+  // Selection (bulk operations)
+  selectedFiles: new Set(),
+  toggleFileSelection: (id) => set((s) => {
+    const next = new Set(s.selectedFiles);
+    if (next.has(id)) next.delete(id); else next.add(id);
+    return { selectedFiles: next };
+  }),
+  selectAllFiles: () => set((s) => ({
+    selectedFiles: new Set(s.files.map((f) => f.id)),
+  })),
+  clearSelection: () => set({ selectedFiles: new Set() }),
+
   // View
   viewMode: localStorage.getItem('octovault_view') || 'grid',
   setViewMode: (viewMode) => {

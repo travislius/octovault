@@ -1,6 +1,7 @@
-import { File, Image, FileText, Film, Music, Archive, Code, Download, Trash2 } from 'lucide-react';
+import { File, Image, FileText, Film, Music, Archive, Code, Download, Trash2, Check } from 'lucide-react';
 import { downloadFile, deleteFile, getThumb } from '../api';
 import { useState } from 'react';
+import { useStore } from '../store';
 
 function formatBytes(bytes) {
   if (!bytes) return '0 B';
@@ -26,7 +27,7 @@ function SmallIcon({ mime }) {
   return <File className={cls} />;
 }
 
-function FileRow({ file, onPreview, onRefresh }) {
+function FileRow({ file, onPreview, onRefresh, selected, onToggleSelect }) {
   const [imgErr, setImgErr] = useState(false);
   const hasThumb = file.thumbnail_path || file.mime_type?.startsWith('image/');
 
@@ -49,8 +50,18 @@ function FileRow({ file, onPreview, onRefresh }) {
   return (
     <tr
       onClick={() => onPreview(file)}
-      className="group border-b border-gray-800/50 hover:bg-gray-800/40 cursor-pointer transition"
+      className={`group border-b border-gray-800/50 hover:bg-gray-800/40 cursor-pointer transition ${selected ? 'bg-ocean-600/10' : ''}`}
     >
+      <td className="py-3 px-4 w-10">
+        <div
+          onClick={(e) => { e.stopPropagation(); onToggleSelect?.(file.id); }}
+          className={`w-5 h-5 rounded border-2 flex items-center justify-center cursor-pointer transition ${
+            selected ? 'bg-ocean-500 border-ocean-500' : 'border-gray-600 hover:border-gray-400'
+          }`}
+        >
+          {selected && <Check className="w-3 h-3 text-white" />}
+        </div>
+      </td>
       <td className="py-3 px-4 flex items-center gap-3">
         <div className="w-8 h-8 rounded-lg bg-gray-800 flex items-center justify-center shrink-0 overflow-hidden">
           {hasThumb && !imgErr ? (
@@ -87,11 +98,14 @@ function FileRow({ file, onPreview, onRefresh }) {
 }
 
 export default function FileList({ files, onPreview, onRefresh }) {
+  const { selectedFiles, toggleFileSelection } = useStore();
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full">
         <thead>
           <tr className="text-left text-xs text-gray-500 uppercase tracking-wider border-b border-gray-800">
+            <th className="py-2 px-4 w-10"></th>
             <th className="py-2 px-4">Name</th>
             <th className="py-2 px-4 hidden sm:table-cell">Size</th>
             <th className="py-2 px-4 hidden md:table-cell">Date</th>
@@ -100,7 +114,14 @@ export default function FileList({ files, onPreview, onRefresh }) {
         </thead>
         <tbody>
           {files.map((file) => (
-            <FileRow key={file.id} file={file} onPreview={onPreview} onRefresh={onRefresh} />
+            <FileRow
+              key={file.id}
+              file={file}
+              onPreview={onPreview}
+              onRefresh={onRefresh}
+              selected={selectedFiles.has(file.id)}
+              onToggleSelect={toggleFileSelection}
+            />
           ))}
         </tbody>
       </table>

@@ -1,7 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { useCallback, useEffect } from 'react';
 import { useStore } from './store';
+import { getTags } from './api';
 import Login from './pages/Login';
 import Browse from './pages/Browse';
+import SearchPage from './pages/Search';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 
@@ -12,11 +15,18 @@ function ProtectedRoute() {
 }
 
 function AppLayout() {
+  const setTags = useStore((s) => s.setTags);
+  const refreshTags = useCallback(() => {
+    getTags().then((r) => setTags(r.data?.tags || r.data || [])).catch(() => {});
+  }, [setTags]);
+
+  useEffect(() => { refreshTags(); }, [refreshTags]);
+
   return (
     <div className="h-screen flex flex-col bg-gray-950 text-white">
       <Header onUploadClick={() => window.__octovaultOpenUpload?.()} />
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
+        <Sidebar onRefreshTags={refreshTags} />
         <main className="flex-1 overflow-y-auto p-6">
           <Outlet />
         </main>
@@ -38,6 +48,7 @@ export default function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>
             <Route path="/" element={<Browse />} />
+            <Route path="/search" element={<SearchPage />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
