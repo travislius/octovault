@@ -1,24 +1,43 @@
 import os
 import secrets
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy.orm import Session
 
 from .config import settings
 from .database import engine, SessionLocal, Base, get_db
 from .models import User
-from .auth import hash_password
-from fastapi import Depends
-from sqlalchemy.orm import Session
+from .auth import hash_password, get_current_user
 
 from .routers import auth as auth_router
 from .routers import files as files_router
 from .routers import tags as tags_router
-from .auth import get_current_user
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="OctoVault", version="0.1.0")
+tags_metadata = [
+    {"name": "auth", "description": "Authentication — login, token refresh"},
+    {"name": "files", "description": "File management — upload, download, browse, search, tag assignment"},
+    {"name": "tags", "description": "Tag CRUD — create, list, update, delete tags"},
+    {"name": "system", "description": "Health check and storage statistics"},
+]
+
+app = FastAPI(
+    title="OctoVault",
+    version="0.1.0",
+    description="Self-hosted personal file vault with tagging, search, and thumbnails.",
+    openapi_tags=tags_metadata,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(auth_router.router, prefix="/api/auth", tags=["auth"])
 app.include_router(files_router.router, prefix="/api/files", tags=["files"])
@@ -42,12 +61,12 @@ def create_default_user():
         db.close()
 
 
-@app.get("/api/health")
+@app.get("/api/health", tags=["system"], summary="Health check")
 def health():
     return {"status": "ok"}
 
 
-@app.get("/api/stats")
+@app.get("/api/stats", tags=["system"], summary="Storage statistics")
 def stats(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     from sqlalchemy import func as sa_func
     from .models import File, Tag

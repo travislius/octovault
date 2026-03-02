@@ -1,1 +1,62 @@
-// TODO: API client
+import axios from 'axios';
+
+const api = axios.create({
+  baseURL: '/api',
+  headers: { 'Content-Type': 'application/json' },
+});
+
+// Inject JWT token into every request
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('octovault_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Handle 401 → redirect to login
+api.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (err.response?.status === 401) {
+      localStorage.removeItem('octovault_token');
+      window.location.href = '/login';
+    }
+    return Promise.reject(err);
+  }
+);
+
+// Auth
+export const login = (username, password) =>
+  api.post('/auth/login', { username, password });
+
+export const refreshToken = () => api.post('/auth/refresh');
+
+// Files
+export const getFiles = (params) => api.get('/files', { params });
+export const getFile = (id) => api.get(`/files/${id}`);
+export const downloadFile = (id) => api.get(`/files/${id}/download`, { responseType: 'blob' });
+export const getThumb = (id) => `/api/files/${id}/thumb`;
+export const deleteFile = (id) => api.delete(`/files/${id}`);
+export const updateFile = (id, data) => api.put(`/files/${id}`, data);
+export const uploadFiles = (formData, onProgress) =>
+  api.post('/files/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    onUploadProgress: onProgress,
+  });
+
+// Search
+export const searchFiles = (q) => api.get('/files/search', { params: { q } });
+
+// Tags
+export const getTags = () => api.get('/tags');
+export const createTag = (data) => api.post('/tags', data);
+export const updateTag = (id, data) => api.put(`/tags/${id}`, data);
+export const deleteTag = (id) => api.delete(`/tags/${id}`);
+export const assignTags = (fileId, tagIds) => api.post(`/files/${fileId}/tags`, { tag_ids: tagIds });
+export const removeTag = (fileId, tagId) => api.delete(`/files/${fileId}/tags/${tagId}`);
+
+// Stats
+export const getStats = () => api.get('/stats');
+
+export default api;

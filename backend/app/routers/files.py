@@ -37,6 +37,13 @@ async def upload_file(
     mime = file.content_type or mimetypes.guess_type(file.filename or "")[0] or "application/octet-stream"
     rel_path, checksum = save_file(data, file.filename or "unnamed")
 
+    # Check for duplicate checksum
+    existing = db.query(File).filter(File.checksum == checksum).first()
+    if existing:
+        # Clean up the just-saved file
+        delete_file(rel_path)
+        raise HTTPException(status_code=409, detail=f"Duplicate file — matches existing file id={existing.id} ({existing.name})")
+
     # Generate thumbnail
     thumb_path = generate_thumbnail(rel_path, mime, data)
 
