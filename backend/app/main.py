@@ -104,6 +104,22 @@ def _human_size(nbytes: int) -> str:
 
 
 # Serve frontend static files if built — MUST be last (catch-all mount)
-static_dir = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist")
-if os.path.isdir(static_dir):
-    app.mount("/", StaticFiles(directory=static_dir, html=True), name="frontend")
+# In Docker the dist ends up at /app/frontend/dist; locally it's relative
+_candidates = [
+    os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist"),
+    "/app/frontend/dist",
+]
+static_dir = next((d for d in _candidates if os.path.isdir(d)), None)
+if static_dir:
+    from fastapi.responses import FileResponse
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def spa_fallback(full_path: str):
+        """SPA fallback — serve index.html for any non-API, non-file route."""
+        file_path = os.path.join(static_dir, full_path)
+        if full_path and os.path.isfile(file_path):
+            from starlette.responses import FileResponse as SFR
+            return SFR(file_path)
+        return FileResponse(os.path.join(static_dir, "index.html"))
+
+    app.mount("/assets", StaticFiles(directory=os.path.join(static_dir, "assets")), name="assets")
