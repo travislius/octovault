@@ -1,15 +1,161 @@
-# OctoVault
+# 🐙 OctoVault
 
-A lightweight, self-hosted personal file vault. Beautiful, simple, API-friendly.
+> A beautiful, lightweight, self-hosted personal file vault.
 
-## Features
-- 📁 File browsing, upload, download
-- 🏷️ Tag-based organization
-- 🔍 Search by name, tag, type
-- 🖼️ Image & PDF preview
-- 📱 PWA mobile support
-- 🤖 REST API for automation
-- 🐳 Docker one-liner deployment
+OctoVault is a clean alternative to Nextcloud — fast, simple, and actually good-looking. Built for people who want to self-host their personal files without the complexity.
 
-## License
-MIT
+![OctoVault Screenshot](https://raw.githubusercontent.com/travislius/octovault/main/docs/screenshot.png)
+
+## ✨ Features
+
+- 📁 **File browser** — Upload, download, rename, delete, move files
+- 🏷️ **Tags** — Label files with searchable, color-coded tags
+- 🔍 **Search** — Instant search by filename or tag
+- 🖼️ **Preview** — Inline image and PDF preview
+- 📱 **PWA** — Install on your phone like a native app
+- 🔐 **Auth** — Simple username/password with JWT
+- 🤖 **REST API** — Full API for automation and AI integration
+- 🐳 **Docker** — One-liner deployment with `docker compose up`
+
+## 🚀 Quick Start
+
+### Docker (recommended)
+
+```bash
+git clone https://github.com/travislius/octovault.git
+cd octovault
+cp .env.example .env
+# Edit .env with your credentials
+docker compose up -d
+```
+
+Open http://localhost:5679 in your browser.
+
+### Native (Python + Node)
+
+```bash
+git clone https://github.com/travislius/octovault.git
+cd octovault
+
+# Backend
+cd backend && python3 -m venv venv && source venv/bin/activate
+pip install -r requirements.txt && cd ..
+
+# Frontend
+cd frontend && npm install && npm run build && cd ..
+
+# Configure
+cp .env.example .env
+# Edit .env with your credentials
+
+# Run
+./start.sh
+```
+
+## ⚙️ Configuration
+
+Copy `.env.example` to `.env` and edit:
+
+```env
+OCTOVAULT_USERNAME=admin        # Login username
+OCTOVAULT_PASSWORD=changeme     # Login password (use something strong!)
+OCTOVAULT_SECRET=random-string  # JWT secret (generate with: openssl rand -hex 32)
+OCTOVAULT_STORAGE=/data/files   # Where files are stored on disk
+OCTOVAULT_DB=/data/octovault.db # SQLite database path
+OCTOVAULT_MAX_UPLOAD_MB=500     # Max upload size in MB
+OCTOVAULT_PORT=5679             # Port to listen on
+```
+
+> **Important:** Keep your data directory outside the git repo to avoid accidentally committing personal files.
+
+## 🌐 Exposing to the Internet
+
+For HTTPS access from anywhere (phone, etc.), use [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/):
+
+```bash
+cloudflared tunnel create octovault
+cloudflared tunnel route dns octovault vault.yourdomain.com
+```
+
+Or use a reverse proxy like nginx with Let's Encrypt.
+
+## 📡 REST API
+
+OctoVault has a full REST API — useful for automation and AI assistants:
+
+```bash
+# Login
+TOKEN=$(curl -s -X POST http://localhost:5679/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"changeme"}' | jq -r .access_token)
+
+# Upload a file
+curl -X POST http://localhost:5679/api/files/upload \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "file=@/path/to/document.pdf"
+
+# Search files
+curl http://localhost:5679/api/files/search?q=passport \
+  -H "Authorization: Bearer $TOKEN"
+
+# Add a tag
+curl -X POST http://localhost:5679/api/files/1/tags \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '[1, 2]'
+```
+
+Full API docs available at `http://localhost:5679/docs` (Swagger UI).
+
+## 🏗️ Tech Stack
+
+| Layer | Tech |
+|-------|------|
+| Frontend | React + Vite + Tailwind CSS |
+| Backend | Python + FastAPI |
+| Database | SQLite (via SQLAlchemy) |
+| Auth | JWT tokens |
+| Storage | Real filesystem (files are actual files) |
+| Container | Docker + docker-compose |
+
+## 📂 Project Structure
+
+```
+octovault/
+├── backend/
+│   └── app/
+│       ├── main.py          # FastAPI app
+│       ├── routers/         # API routes (auth, files, tags)
+│       ├── models.py        # Database models
+│       ├── schemas.py       # Pydantic schemas
+│       └── utils/           # Storage, thumbnails
+├── frontend/
+│   └── src/
+│       ├── pages/           # Browse, Login, Search
+│       ├── components/      # FileGrid, Preview, Sidebar
+│       └── api.js           # API client
+├── .env.example
+├── docker-compose.yml
+├── Dockerfile
+└── start.sh                 # Native startup script
+```
+
+## 🤝 Contributing
+
+PRs welcome! Ideas for future features:
+
+- [ ] Multi-user support
+- [ ] Folder organization
+- [ ] Bulk operations (bulk tag, bulk delete)
+- [ ] Full-text search inside documents
+- [ ] Share links (public file sharing)
+- [ ] Duplicate detection
+- [ ] Mobile app (React Native)
+
+## 📄 License
+
+MIT — use it, fork it, make it yours.
+
+---
+
+Built with ❤️ by [@travislius](https://github.com/travislius)
