@@ -1,6 +1,6 @@
 {
-  "name": "OctoVault",
-  "short_name": "OctoVault",
+  "name": "OctoCloud",
+  "short_name": "OctoCloud",
   "description": "Self-hosted personal file vault",
   "start_url": "/",
   "display": "standalone",

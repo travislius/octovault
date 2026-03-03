@@ -1,5 +1,5 @@
 services:
-  octovault:
+  octocloud:
     build: .
     ports:
       - "5679:5679"

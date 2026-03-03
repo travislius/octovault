@@ -78,7 +78,7 @@ export default function Header({ onUploadClick }) {
       {/* Logo */}
       <div className="flex items-center gap-2 shrink-0 cursor-pointer" onClick={() => { setSearchQuery(''); setLocalQuery(''); navigate('/'); }}>
         <Octagon className="w-6 h-6 text-ocean-400" />
-        <span className="text-lg font-bold text-white hidden sm:block">OctoVault</span>
+        <span className="text-lg font-bold text-white hidden sm:block">OctoCloud</span>
       </div>
 
       {/* Search */}

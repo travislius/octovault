@@ -30,7 +30,7 @@ function AppLayout() {
 
   return (
     <div className="h-screen flex flex-col bg-gray-950 dark:bg-gray-950 bg-white text-gray-900 dark:text-white transition-colors">
-      <Header onUploadClick={() => window.__octovaultOpenUpload?.()} />
+      <Header onUploadClick={() => window.__octocloudOpenUpload?.()} />
       <div className="flex flex-1 overflow-hidden relative">
         {/* Mobile sidebar overlay */}
         {sidebarOpen && (

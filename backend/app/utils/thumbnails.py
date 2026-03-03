@@ -4,7 +4,7 @@ import uuid
 
 from ..config import settings
 
-THUMB_SIZE = (200, 200)
+THUMB_SIZE = (400, 400)
 
 
 def _get_thumbs_dir() -> str:

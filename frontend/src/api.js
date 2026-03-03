@@ -7,7 +7,7 @@ const api = axios.create({
 
 // Inject JWT token into every request
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('octovault_token');
+  const token = localStorage.getItem('octocloud_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -19,7 +19,7 @@ api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
-      localStorage.removeItem('octovault_token');
+      localStorage.removeItem('octocloud_token');
       window.location.href = '/login';
     }
     return Promise.reject(err);
@@ -36,7 +36,7 @@ export const refreshToken = () => api.post('/auth/refresh');
 export const getFiles = (params) => api.get('/files', { params });
 export const getFile = (id) => api.get(`/files/${id}`);
 export const downloadFile = (id) => api.get(`/files/${id}/download`, { responseType: 'blob' });
-export const getThumb = (id) => { const token = localStorage.getItem('octovault_token'); return `/api/files/${id}/thumb?token=${token}`; };
+export const getThumb = (id) => { const token = localStorage.getItem('octocloud_token'); return `/api/files/${id}/thumb?token=${token}`; };
 export const deleteFile = (id) => api.delete(`/files/${id}`);
 export const updateFile = (id, data) => api.put(`/files/${id}`, data);
 export const uploadFiles = (formData, onProgress) =>

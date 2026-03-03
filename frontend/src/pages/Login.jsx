@@ -35,7 +35,7 @@ export default function Login() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-ocean-600/20 mb-4">
             <Octagon className="w-8 h-8 text-ocean-400" />
           </div>
-          <h1 className="text-2xl font-bold text-white">OctoVault</h1>
+          <h1 className="text-2xl font-bold text-white">OctoCloud</h1>
           <p className="text-gray-500 text-sm mt-1">Your personal file vault</p>
         </div>
 

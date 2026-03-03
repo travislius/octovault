@@ -25,7 +25,7 @@ tags_metadata = [
 ]
 
 app = FastAPI(
-    title="OctoVault",
+    title="OctoCloud",
     version="0.1.0",
     description="Self-hosted personal file vault with tagging, search, and thumbnails.",
     openapi_tags=tags_metadata,

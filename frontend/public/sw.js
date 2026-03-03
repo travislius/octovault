@@ -1,4 +1,4 @@
-const CACHE_NAME = 'octovault-v1';
+const CACHE_NAME = 'octocloud-v1';
 const APP_SHELL = [
   '/',
   '/index.html',

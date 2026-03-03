@@ -1,11 +1,11 @@
-# OctoVault — Self-hosted Personal File Vault
+# OctoCloud — Self-hosted Personal File Vault
 
 ## Overview
 Lightweight, beautiful, self-hosted file vault for people who want simplicity over Nextcloud bloat.
 
 ## Architecture
 ```
-octovault/
+octocloud/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py          # FastAPI app
@@ -120,13 +120,13 @@ GET    /api/stats               # Storage stats
 
 ### Config (.env)
 ```
-OCTOVAULT_USERNAME=admin
-OCTOVAULT_PASSWORD=changeme
-OCTOVAULT_SECRET=random-jwt-secret
-OCTOVAULT_STORAGE=/data/files
-OCTOVAULT_DB=/data/octovault.db
-OCTOVAULT_MAX_UPLOAD_MB=500
-OCTOVAULT_PORT=5679
+OCTOCLOUD_USERNAME=admin
+OCTOCLOUD_PASSWORD=changeme
+OCTOCLOUD_SECRET=random-jwt-secret
+OCTOCLOUD_STORAGE=/data/files
+OCTOCLOUD_DB=/data/octocloud.db
+OCTOCLOUD_MAX_UPLOAD_MB=500
+OCTOCLOUD_PORT=5679
 ```
 
 ### Thumbnails
@@ -153,7 +153,7 @@ OCTOVAULT_PORT=5679
 ```yaml
 # docker-compose.yml
 services:
-  octovault:
+  octocloud:
     build: .
     ports:
       - "5679:5679"
@@ -169,4 +169,4 @@ Single Dockerfile: Python backend serves built React frontend as static files.
 ## Deployment on Mac Mini
 - Port 5679
 - Cloudflare tunnel → photo.octodance.com
-- Data in ~/octovault-data/ (persistent)
+- Data in ~/octocloud-data/ (persistent)

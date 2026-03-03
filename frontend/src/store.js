@@ -2,18 +2,18 @@ import { create } from 'zustand';
 
 export const useStore = create((set, get) => ({
   // Auth
-  token: localStorage.getItem('octovault_token') || null,
-  isAuthenticated: !!localStorage.getItem('octovault_token'),
+  token: localStorage.getItem('octocloud_token') || null,
+  isAuthenticated: !!localStorage.getItem('octocloud_token'),
   setToken: (token) => {
     if (token) {
-      localStorage.setItem('octovault_token', token);
+      localStorage.setItem('octocloud_token', token);
     } else {
-      localStorage.removeItem('octovault_token');
+      localStorage.removeItem('octocloud_token');
     }
     set({ token, isAuthenticated: !!token });
   },
   logout: () => {
-    localStorage.removeItem('octovault_token');
+    localStorage.removeItem('octocloud_token');
     set({ token: null, isAuthenticated: false });
   },
 
@@ -42,9 +42,9 @@ export const useStore = create((set, get) => ({
   clearSelection: () => set({ selectedFiles: new Set() }),
 
   // View
-  viewMode: localStorage.getItem('octovault_view') || 'grid',
+  viewMode: localStorage.getItem('octocloud_view') || 'grid',
   setViewMode: (viewMode) => {
-    localStorage.setItem('octovault_view', viewMode);
+    localStorage.setItem('octocloud_view', viewMode);
     set({ viewMode });
   },
 
@@ -57,9 +57,9 @@ export const useStore = create((set, get) => ({
   setStats: (stats) => set({ stats }),
 
   // Theme (dark/light)
-  theme: localStorage.getItem('octovault_theme') || 'dark',
+  theme: localStorage.getItem('octocloud_theme') || 'dark',
   setTheme: (theme) => {
-    localStorage.setItem('octovault_theme', theme);
+    localStorage.setItem('octocloud_theme', theme);
     document.documentElement.classList.toggle('dark', theme === 'dark');
     set({ theme });
   },
