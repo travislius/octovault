@@ -36,7 +36,7 @@ export const refreshToken = () => api.post('/auth/refresh');
 export const getFiles = (params) => api.get('/files', { params });
 export const getFile = (id) => api.get(`/files/${id}`);
 export const downloadFile = (id) => api.get(`/files/${id}/download`, { responseType: 'blob' });
-export const getThumb = (id) => `/api/files/${id}/thumb`;
+export const getThumb = (id) => { const token = localStorage.getItem('token'); return `/api/files/${id}/thumb?token=${token}`; };
 export const deleteFile = (id) => api.delete(`/files/${id}`);
 export const updateFile = (id, data) => api.put(`/files/${id}`, data);
 export const uploadFiles = (formData, onProgress) =>
