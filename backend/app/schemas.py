@@ -34,6 +34,7 @@ class FileOut(BaseModel):
     name: str
     size: int
     mime_type: str | None
+    thumbnail_path: str | None = None
     created_at: datetime
     updated_at: datetime
     tags: list[TagOut] = []
