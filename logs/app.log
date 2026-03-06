@@ -67,3 +67,56 @@ INFO:     50.123.108.14:0 - "GET /api/tags HTTP/1.1" 200 OK
 INFO:     50.123.108.14:0 - "GET /resources HTTP/1.1" 200 OK
 INFO:     50.123.108.14:0 - "GET /manifest.json HTTP/1.1" 200 OK
 INFO:     50.123.108.14:0 - "GET /api/tags HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /assets/index-CwyCg8nd.js HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /assets/index-rokkm5YL.css HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /manifest.json HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/tags HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /sw.js HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     50.123.108.14:0 - "GET /api/system/resources HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [58061]

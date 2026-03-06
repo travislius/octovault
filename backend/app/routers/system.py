@@ -31,21 +31,34 @@ def get_resources(current_user=Depends(get_current_user)):
     mem = psutil.virtual_memory()
     swap = psutil.swap_memory()
 
-    # Disk (all mounted partitions, skip pseudo-fs)
+    # Disk — only show root + real external volumes (skip macOS system sub-volumes)
+    _seen_devices = set()
     disks = []
     for part in psutil.disk_partitions(all=False):
+        mp = part.mountpoint
+        # Skip macOS hidden system volumes, simulator images, and duplicate mounts
+        if mp.startswith("/System/Volumes/"):
+            continue
+        if mp.startswith("/Library/Developer/"):
+            continue
+        if part.device in _seen_devices:
+            continue
+        _seen_devices.add(part.device)
         try:
-            usage = psutil.disk_usage(part.mountpoint)
+            usage = psutil.disk_usage(mp)
+            # Skip tiny partitions < 1 GB (firmware/recovery volumes)
+            if usage.total < 1 * 1024 ** 3:
+                continue
             disks.append({
                 "device": part.device,
-                "mountpoint": part.mountpoint,
+                "mountpoint": mp,
                 "fstype": part.fstype,
                 "total": _fmt_bytes(usage.total),
                 "used": _fmt_bytes(usage.used),
                 "free": _fmt_bytes(usage.free),
                 "percent": usage.percent,
             })
-        except PermissionError:
+        except (PermissionError, OSError):
             pass
 
     # Network I/O (delta since last call isn't tracked — return cumulative counters)
