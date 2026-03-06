@@ -3,6 +3,7 @@ import { useCallback, useEffect } from 'react';
 import { useStore } from './store';
 import { getTags } from './api';
 import Login from './pages/Login';
+import Home from './pages/Home';
 import Browse from './pages/Browse';
 import SearchPage from './pages/Search';
 import Resources from './pages/Resources';
@@ -62,7 +63,8 @@ export default function App() {
         />
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>
-            <Route path="/" element={<Browse />} />
+            <Route path="/" element={<Home />} />
+            <Route path="/files" element={<Browse />} />
             <Route path="/search" element={<SearchPage />} />
             <Route path="/resources" element={<Resources />} />
             <Route path="/calendar" element={<CalendarPage />} />

@@ -76,7 +76,7 @@ export default function Header({ onUploadClick }) {
       </button>
 
       {/* Logo */}
-      <div className="flex items-center gap-2 shrink-0 cursor-pointer" onClick={() => { setSearchQuery(''); setLocalQuery(''); navigate('/'); }}>
+      <div className="flex items-center gap-2 shrink-0 cursor-pointer" onClick={() => { setSearchQuery(''); setLocalQuery(''); navigate('/'); }} title="Home">
         <Crosshair className="w-6 h-6 text-red-500" />
         <span className="text-lg font-bold text-white hidden sm:block">Claw Missions</span>
       </div>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  FolderOpen, Monitor, ChevronDown, ChevronRight, Database, CalendarDays
+  FolderOpen, Monitor, ChevronDown, ChevronRight, Database, CalendarDays, LayoutDashboard
 } from 'lucide-react';
 import { useStore } from '../store';
 
@@ -19,6 +19,8 @@ export default function Sidebar({ onRefreshTags }) {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const isHome      = location.pathname === '/';
+  const isFiles     = location.pathname === '/files';
   const isResources = location.pathname === '/resources';
   const isCalendar  = location.pathname === '/calendar';
 
@@ -32,8 +34,21 @@ export default function Sidebar({ onRefreshTags }) {
       fixed md:relative inset-y-0 left-0 z-40 transform transition-transform duration-200 ease-in-out
       ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0`}>
 
-      {/* ── Machine Resources ── */}
+      {/* ── Home ── */}
       <div className="p-4 pb-2">
+        <button
+          onClick={() => goTo('/')}
+          className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm transition mb-1 ${
+            isHome ? 'bg-red-500/20 text-red-400' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          }`}
+        >
+          <LayoutDashboard className="w-4 h-4" />
+          Home
+        </button>
+      </div>
+
+      {/* ── Machine Resources ── */}
+      <div className="px-4 pb-2">
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Monitor</p>
         <button
           onClick={() => goTo('/resources')}
@@ -76,11 +91,9 @@ export default function Sidebar({ onRefreshTags }) {
 
         {vaultOpen && (
           <button
-            onClick={() => goTo('/')}
+            onClick={() => goTo('/files')}
             className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm transition ${
-              !isResources && !isCalendar
-                ? 'bg-ocean-600/20 text-ocean-400'
-                : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+              isFiles ? 'bg-ocean-600/20 text-ocean-400' : 'text-gray-400 hover:bg-gray-800 hover:text-white'
             }`}
           >
             <FolderOpen className="w-4 h-4" />
