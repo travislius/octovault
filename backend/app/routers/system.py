@@ -7,6 +7,9 @@ router = APIRouter()
 
 _boot_time = psutil.boot_time()
 
+# For live network speed calculation
+_net_last = {"time": time.time(), "sent": 0, "recv": 0, "ready": False}
+
 
 def _fmt_bytes(n: int) -> dict:
     """Return bytes + human-friendly string."""
@@ -61,10 +64,19 @@ def get_resources(current_user=Depends(get_current_user)):
         except (PermissionError, OSError):
             pass
 
-    # Network I/O (delta since last call isn't tracked — return cumulative counters)
+    # Network I/O — cumulative + live speed via delta
     net_io = psutil.net_io_counters()
     net_if = psutil.net_if_stats()
     active_ifaces = [k for k, v in net_if.items() if v.isup and k != "lo"]
+
+    now = time.time()
+    elapsed = now - _net_last["time"]
+    if _net_last["ready"] and elapsed > 0:
+        upload_bps   = (net_io.bytes_sent - _net_last["sent"]) / elapsed
+        download_bps = (net_io.bytes_recv - _net_last["recv"]) / elapsed
+    else:
+        upload_bps = download_bps = 0.0
+    _net_last.update({"time": now, "sent": net_io.bytes_sent, "recv": net_io.bytes_recv, "ready": True})
 
     # Uptime
     uptime_secs = int(time.time() - _boot_time)
@@ -101,6 +113,8 @@ def get_resources(current_user=Depends(get_current_user)):
             "packets_sent": net_io.packets_sent,
             "packets_recv": net_io.packets_recv,
             "active_interfaces": active_ifaces,
+            "upload_speed": _fmt_bytes(max(0, upload_bps)),
+            "download_speed": _fmt_bytes(max(0, download_bps)),
         },
         "system": {
             "uptime_seconds": uptime_secs,

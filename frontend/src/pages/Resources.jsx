@@ -220,22 +220,45 @@ export default function Resources() {
       </Card>
 
       {/* Network */}
-      <Card icon={Wifi} title="Network (cumulative since boot)" accent="blue">
-        <div className="grid grid-cols-2 gap-6">
-          <div>
-            <p className="text-xs text-gray-500 mb-2">Received</p>
-            <p className="text-2xl font-bold text-blue-400">{network.bytes_recv.human}</p>
-            <p className="text-xs text-gray-500 mt-1">{network.packets_recv.toLocaleString()} packets</p>
+      <Card icon={Wifi} title="Network" accent="blue">
+        {/* Live speed */}
+        <div className="grid grid-cols-2 gap-4 mb-5">
+          <div className="bg-gray-800/60 rounded-lg px-4 py-3">
+            <p className="text-xs text-gray-500 mb-1">↓ Download</p>
+            <p className="text-2xl font-bold text-blue-400 font-mono">
+              {network.download_speed?.human ?? '—'}
+              <span className="text-sm font-normal text-gray-500">/s</span>
+            </p>
           </div>
-          <div>
-            <p className="text-xs text-gray-500 mb-2">Sent</p>
-            <p className="text-2xl font-bold text-green-400">{network.bytes_sent.human}</p>
-            <p className="text-xs text-gray-500 mt-1">{network.packets_sent.toLocaleString()} packets</p>
+          <div className="bg-gray-800/60 rounded-lg px-4 py-3">
+            <p className="text-xs text-gray-500 mb-1">↑ Upload</p>
+            <p className="text-2xl font-bold text-green-400 font-mono">
+              {network.upload_speed?.human ?? '—'}
+              <span className="text-sm font-normal text-gray-500">/s</span>
+            </p>
           </div>
         </div>
+
+        {/* Cumulative totals */}
+        <div className="border-t border-gray-800 pt-3">
+          <p className="text-xs text-gray-600 uppercase tracking-wider mb-2">Since boot</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs text-gray-500">Total received</p>
+              <p className="text-sm font-mono text-gray-300">{network.bytes_recv.human}</p>
+              <p className="text-xs text-gray-600">{network.packets_recv.toLocaleString()} packets</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Total sent</p>
+              <p className="text-sm font-mono text-gray-300">{network.bytes_sent.human}</p>
+              <p className="text-xs text-gray-600">{network.packets_sent.toLocaleString()} packets</p>
+            </div>
+          </div>
+        </div>
+
         {network.active_interfaces?.length > 0 && (
-          <div className="mt-4 pt-3 border-t border-gray-800">
-            <p className="text-xs text-gray-500">Active interfaces: {network.active_interfaces.join(', ')}</p>
+          <div className="mt-3 pt-3 border-t border-gray-800">
+            <p className="text-xs text-gray-500">Interfaces: {network.active_interfaces.join(', ')}</p>
           </div>
         )}
       </Card>
