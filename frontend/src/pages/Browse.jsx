@@ -34,8 +34,8 @@ export default function Browse() {
 
   // Expose upload toggle to header via window (simple bridge)
   useEffect(() => {
-    window.__octocloudOpenUpload = () => setShowUpload(true);
-    return () => { delete window.__octocloudOpenUpload; };
+    window.__clawOpenUpload = () => setShowUpload(true);
+    return () => { delete window.__clawOpenUpload; };
   }, []);
 
   const fetchFiles = useCallback(async () => {
