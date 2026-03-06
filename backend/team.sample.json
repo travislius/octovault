@@ -1,0 +1,38 @@
+{
+  "tia": {
+    "name": "Tia",
+    "emoji": "🌿",
+    "role": "Always-On Hub",
+    "machine": "Mac Mini",
+    "specs": "32 GB RAM · 2 TB SSD",
+    "os": "macOS",
+    "location": "Home",
+    "fetch": "local"
+  },
+  "agent2": {
+    "name": "Agent 2",
+    "emoji": "🔬",
+    "role": "GPU Server",
+    "machine": "Windows PC",
+    "specs": "128 GB RAM · GPU",
+    "os": "windows",
+    "location": "Home",
+    "fetch": "ssh",
+    "host": "100.x.x.x",
+    "ssh_user": "username",
+    "openclaw_cmd": "openclaw"
+  },
+  "agent3": {
+    "name": "Agent 3",
+    "emoji": "🤖",
+    "role": "Mobile",
+    "machine": "MacBook Pro",
+    "specs": "64 GB RAM · 2 TB SSD",
+    "os": "macOS",
+    "location": "Mobile",
+    "fetch": "ssh",
+    "host": null,
+    "ssh_user": "username",
+    "openclaw_cmd": "openclaw"
+  }
+}

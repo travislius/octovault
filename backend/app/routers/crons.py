@@ -7,30 +7,22 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from ..auth import get_current_user
 
-# ── Team config ───────────────────────────────────────────────────────────────
-TEAM = {
-    "tia": {
-        "name": "Tia Li", "emoji": "🌿", "role": "Always-On Hub",
-        "machine": "Mac Mini M4", "specs": "32 GB RAM · 2 TB SSD",
-        "os": "macOS", "location": "Bothell, WA",
-        "fetch": "local",
-    },
-    "dexter": {
-        "name": "Dexter", "emoji": "🔬", "role": "Heavy Compute + GPU",
-        "machine": "Windows PC", "specs": "128 GB RAM · RTX 4080 · 8 TB SSD",
-        "os": "windows", "location": "Bothell, WA",
-        "fetch": "ssh", "host": "100.84.71.61", "ssh_user": "travis",
-        "openclaw_cmd": "openclaw",
-    },
-    "sia": {
-        "name": "Sia", "emoji": "🤖", "role": "Mobile Laptop",
-        "machine": "MacBook Pro M1 Max", "specs": "64 GB RAM · 2 TB SSD",
-        "os": "macOS", "location": "Mobile",
-        "fetch": "ssh", "host": None,  # Tailscale IP unknown / offline
-        "ssh_user": "travis",
-        "openclaw_cmd": "openclaw",
-    },
-}
+# ── Team config (loaded from team.json, gitignored) ───────────────────────────
+import os as _os
+
+def _load_team() -> dict:
+    _here = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
+    _path = _os.path.join(_here, "team.json")
+    if _os.path.exists(_path):
+        with open(_path) as f:
+            return json.load(f)
+    # Minimal fallback — no private data
+    return {
+        "tia": {"name": "Tia", "emoji": "🌿", "role": "Hub", "machine": "Mac Mini",
+                "specs": "", "os": "macOS", "location": "", "fetch": "local"}
+    }
+
+TEAM = _load_team()
 
 router = APIRouter()
 

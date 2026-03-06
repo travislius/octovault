@@ -1,8 +1,35 @@
+# Python
 __pycache__/
 *.pyc
+*.pyo
+.venv/
+venv/
+
+# Env & secrets
 .env
+.env.*
+*.secret
+
+# Private team config (contains IPs, SSH users)
+backend/team.json
+
+# Database & storage
+*.db
+*.db-shm
+*.db-wal
 data/
+**/octocloud-data/
+
+# Logs
+logs/
+*.log
+backend/logs/
+
+# Node / frontend
 node_modules/
 dist/
 .vite/
-*.db
+frontend/dist/
+
+# macOS
+.DS_Store
