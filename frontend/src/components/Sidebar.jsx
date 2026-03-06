@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  FolderOpen, Monitor, ChevronDown, ChevronRight, Database
+  FolderOpen, Monitor, ChevronDown, ChevronRight, Database, CalendarDays
 } from 'lucide-react';
 import { useStore } from '../store';
 
@@ -20,6 +20,7 @@ export default function Sidebar({ onRefreshTags }) {
   const location = useLocation();
 
   const isResources = location.pathname === '/resources';
+  const isCalendar  = location.pathname === '/calendar';
 
   const goTo = (path) => {
     navigate(path);
@@ -44,6 +45,17 @@ export default function Sidebar({ onRefreshTags }) {
         >
           <Monitor className="w-4 h-4" />
           Machine Resources
+        </button>
+        <button
+          onClick={() => goTo('/calendar')}
+          className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm transition ${
+            isCalendar
+              ? 'bg-red-500/20 text-red-400'
+              : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+          }`}
+        >
+          <CalendarDays className="w-4 h-4" />
+          Tia's Schedule
         </button>
       </div>
 

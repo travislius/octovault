@@ -1,0 +1,196 @@
+import json
+import re
+import subprocess
+import time
+from fastapi import APIRouter, Depends
+from ..auth import get_current_user
+
+router = APIRouter()
+
+# ── category mapping ────────────────────────────────────────────────────────
+
+def _categorize(name: str) -> str:
+    n = name.lower()
+    if any(k in n for k in ['trade', 'trading', 'market', 'tqqq', 'sqqq', 'stock', 'investment', 'pre-market', 'after-hours', 'power hour', 'trade-bot']):
+        return 'trading'
+    if any(k in n for k in ['youtube', 'shorts', 'wok', 'oddly', 'city vibes', 'roboplex', 'lol factory']):
+        return 'youtube'
+    if any(k in n for k in ['email', 'gmail', 'outlook', 'inbox']):
+        return 'email'
+    if any(k in n for k in ['blog', 'article', 'content', 'money ideas', 'geopolitical', 'intelligence', 'brief', 'research']):
+        return 'content'
+    if any(k in n for k in ['sparknexus', 'snx', 'word monster', 'wordspark', 'word spark', 'monster math', 'lazy ai', 'lazyai']):
+        return 'projects'
+    return 'system'
+
+
+# ── cron expression parsing ──────────────────────────────────────────────────
+
+_CRON_TO_CAL = {0: 6, 1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5}  # cron→Mon-based
+
+def _parse_dow(expr: str) -> list[int]:
+    """Return sorted list of calendar-day indices (0=Mon … 6=Sun)."""
+    if expr == '*':
+        return list(range(7))
+    days: set[int] = set()
+    for part in expr.split(','):
+        if '-' in part:
+            a, b = map(int, part.split('-'))
+            for d in range(a, b + 1):
+                days.add(_CRON_TO_CAL.get(d % 7, d % 7))
+        else:
+            d = int(part)
+            days.add(_CRON_TO_CAL.get(d % 7, d % 7))
+    return sorted(days)
+
+
+def _parse_expr(expr: str) -> dict:
+    """Parse '0 9 * * 1-5' → {minute, hour, days}."""
+    parts = expr.strip().split()
+    if len(parts) < 5:
+        return {"minute": 0, "hour": 0, "days": list(range(7))}
+    minute = int(parts[0]) if parts[0] != '*' else 0
+    hour   = int(parts[1]) if parts[1] != '*' else 0
+    # dom = parts[2] (ignored for weekly view)
+    # month = parts[3] (ignored)
+    dow    = parts[4]
+    return {"minute": minute, "hour": hour, "days": _parse_dow(dow)}
+
+
+# ── helpers ──────────────────────────────────────────────────────────────────
+
+def _ms_to_relative(ms: int | None) -> str | None:
+    if not ms:
+        return None
+    delta = int(time.time() * 1000) - ms
+    if delta < 0:
+        secs = abs(delta) // 1000
+        if secs < 60: return f"in {secs}s"
+        mins = secs // 60
+        if mins < 60: return f"in {mins}m"
+        hrs = mins // 60
+        if hrs < 24: return f"in {hrs}h"
+        return f"in {hrs // 24}d"
+    secs = delta // 1000
+    if secs < 60: return f"{secs}s ago"
+    mins = secs // 60
+    if mins < 60: return f"{mins}m ago"
+    hrs = mins // 60
+    if hrs < 24: return f"{hrs}h ago"
+    return f"{hrs // 24}d ago"
+
+
+def _fetch_openclaw_crons() -> list[dict]:
+    try:
+        result = subprocess.run(
+            ["openclaw", "cron", "list", "--json"],
+            capture_output=True, text=True, timeout=15
+        )
+        data = json.loads(result.stdout)
+        jobs = data.get("jobs", [])
+    except Exception:
+        return []
+
+    out = []
+    for job in jobs:
+        if not job.get("enabled", True):
+            continue
+        schedule = job.get("schedule", {})
+        expr = schedule.get("expr", "0 0 * * *")
+        tz   = schedule.get("tz", "America/Los_Angeles")
+        parsed = _parse_expr(expr)
+
+        state = job.get("state", {})
+        payload = job.get("payload", {})
+        message = payload.get("message", "")
+        # Truncate task description to ~300 chars for modal
+        task_preview = message[:300].strip() + ("…" if len(message) > 300 else "")
+
+        out.append({
+            "id":        job["id"],
+            "name":      job["name"],
+            "source":    "openclaw",
+            "category":  _categorize(job["name"]),
+            "hour":      parsed["hour"],
+            "minute":    parsed["minute"],
+            "days":      parsed["days"],
+            "expr":      expr,
+            "tz":        tz,
+            "status":    state.get("lastStatus", "unknown"),
+            "next_run":  _ms_to_relative(state.get("nextRunAtMs")),
+            "last_run":  _ms_to_relative(state.get("lastRunAtMs")),
+            "duration_ms": state.get("lastDurationMs"),
+            "consecutive_errors": state.get("consecutiveErrors", 0),
+            "last_error": state.get("lastError"),
+            "target":    job.get("sessionTarget", "isolated"),
+            "task_preview": task_preview,
+            "timeout_s": payload.get("timeoutSeconds"),
+        })
+    return out
+
+
+def _fetch_system_crons() -> list[dict]:
+    try:
+        result = subprocess.run(["crontab", "-l"], capture_output=True, text=True, timeout=5)
+        lines = result.stdout.strip().splitlines()
+    except Exception:
+        return []
+
+    out = []
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith('#'):
+            continue
+        parts = line.split(None, 5)
+        if len(parts) < 6:
+            continue
+        expr = " ".join(parts[:5])
+        cmd  = parts[5]
+        parsed = _parse_expr(expr)
+        name = re.search(r'[\w-]+\.sh', cmd)
+        name = name.group(0) if name else cmd[:40]
+        out.append({
+            "id":        f"crontab-{hash(line) & 0xFFFFFF:06x}",
+            "name":      name,
+            "source":    "crontab",
+            "category":  _categorize(cmd),
+            "hour":      parsed["hour"],
+            "minute":    parsed["minute"],
+            "days":      parsed["days"],
+            "expr":      expr,
+            "tz":        "system",
+            "status":    "unknown",
+            "next_run":  None,
+            "last_run":  None,
+            "duration_ms": None,
+            "consecutive_errors": 0,
+            "last_error": None,
+            "target":    "shell",
+            "task_preview": cmd,
+            "timeout_s": None,
+        })
+    return out
+
+
+# ── route ────────────────────────────────────────────────────────────────────
+
+@router.get("/jobs", tags=["system"])
+def get_cron_jobs(current_user=Depends(get_current_user)):
+    jobs = _fetch_openclaw_crons() + _fetch_system_crons()
+    # Sort by hour then minute
+    jobs.sort(key=lambda j: (j["hour"], j["minute"]))
+
+    # Summary stats
+    by_category = {}
+    by_status = {"ok": 0, "error": 0, "unknown": 0}
+    for j in jobs:
+        by_category[j["category"]] = by_category.get(j["category"], 0) + 1
+        st = j["status"] if j["status"] in by_status else "unknown"
+        by_status[st] += 1
+
+    return {
+        "jobs": jobs,
+        "total": len(jobs),
+        "by_category": by_category,
+        "by_status": by_status,
+    }
