@@ -1,10 +1,29 @@
-# 🐙 Claw Missions
+<img src="https://raw.githubusercontent.com/travislius/claw-missions/main/docs/logo.png" width="120" alt="Claw Missions Logo" />
 
-> A beautiful, lightweight, self-hosted personal file vault.
+# Claw Missions
 
-Claw Missions is a clean alternative to Nextcloud — fast, simple, and actually good-looking. Built for people who want to self-host their personal files without the complexity.
+**Mission control for your digital life.** A self-hosted hub for file storage, AI integration, and personal automation — built to be fast, private, and actually good-looking.
 
-![Claw Missions Screenshot](https://raw.githubusercontent.com/travislius/clawmissions/main/docs/screenshot.png)
+> Started as a personal file vault. Evolving into something bigger.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-cyan.svg)](./LICENSE)
+[![Built with FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?logo=fastapi)](https://fastapi.tiangolo.com)
+[![Built with React](https://img.shields.io/badge/Frontend-React-61DAFB?logo=react)](https://react.dev)
+
+---
+
+## What Is Claw Missions?
+
+Claw Missions is a lightweight, self-hosted platform that gives you full ownership of your files and data. No subscriptions, no third-party clouds, no bloat.
+
+- 🗄️ **File vault** — Upload, organize, tag, search, and preview your files
+- 🤖 **AI-ready API** — First-class REST API designed for automation and AI agent integration
+- 📱 **PWA** — Installs on your phone like a native app
+- 🔐 **Private by default** — Your data stays on your machine
+
+Built to work seamlessly with [OpenClaw](https://github.com/openclaw/openclaw) — your personal AI agent hub.
+
+---
 
 ## ✨ Features
 
@@ -13,29 +32,31 @@ Claw Missions is a clean alternative to Nextcloud — fast, simple, and actually
 - 🔍 **Search** — Instant search by filename or tag
 - 🖼️ **Preview** — Inline image and PDF preview
 - 📱 **PWA** — Install on your phone like a native app
-- 🔐 **Auth** — Simple username/password with JWT
+- 🔐 **Auth** — Username/password login with JWT
 - 🤖 **REST API** — Full API for automation and AI integration
 - 🐳 **Docker** — One-liner deployment with `docker compose up`
+
+---
 
 ## 🚀 Quick Start
 
 ### Docker (recommended)
 
 ```bash
-git clone https://github.com/travislius/clawmissions.git
-cd clawmissions
+git clone https://github.com/travislius/claw-missions.git
+cd claw-missions
 cp .env.example .env
 # Edit .env with your credentials
 docker compose up -d
 ```
 
-Open http://localhost:5679 in your browser.
+Open `http://localhost:5679` in your browser.
 
 ### Native (Python + Node)
 
 ```bash
-git clone https://github.com/travislius/clawmissions.git
-cd clawmissions
+git clone https://github.com/travislius/claw-missions.git
+cd claw-missions
 
 # Backend
 cd backend && python3 -m venv venv && source venv/bin/activate
@@ -44,44 +65,47 @@ pip install -r requirements.txt && cd ..
 # Frontend
 cd frontend && npm install && npm run build && cd ..
 
-# Configure
-cp .env.example .env
-# Edit .env with your credentials
-
-# Run
+# Configure & run
+cp .env.example .env   # Edit with your credentials
 ./start.sh
 ```
+
+---
 
 ## ⚙️ Configuration
 
 Copy `.env.example` to `.env` and edit:
 
 ```env
-OCTOCLOUD_USERNAME=admin        # Login username
-OCTOCLOUD_PASSWORD=changeme     # Login password (use something strong!)
-OCTOCLOUD_SECRET=random-string  # JWT secret (generate with: openssl rand -hex 32)
-OCTOCLOUD_STORAGE=/data/files   # Where files are stored on disk
-OCTOCLOUD_DB=/data/clawmissions.db # SQLite database path
-OCTOCLOUD_MAX_UPLOAD_MB=500     # Max upload size in MB
-OCTOCLOUD_PORT=5679             # Port to listen on
+CLAWMISSIONS_USERNAME=admin
+CLAWMISSIONS_PASSWORD=changeme       # Use something strong!
+CLAWMISSIONS_SECRET=random-string    # openssl rand -hex 32
+CLAWMISSIONS_STORAGE=/data/files     # Where files live on disk
+CLAWMISSIONS_DB=/data/clawmissions.db
+CLAWMISSIONS_MAX_UPLOAD_MB=500
+CLAWMISSIONS_PORT=5679
 ```
 
-> **Important:** Keep your data directory outside the git repo to avoid accidentally committing personal files.
+> Keep your data directory outside the git repo to avoid committing personal files.
+
+---
 
 ## 🌐 Exposing to the Internet
 
-For HTTPS access from anywhere (phone, etc.), use [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/):
+For HTTPS access anywhere, use [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) (free):
 
 ```bash
-cloudflared tunnel create clawmissions
-cloudflared tunnel route dns clawmissions vault.yourdomain.com
+cloudflared tunnel create claw-missions
+cloudflared tunnel route dns claw-missions missions.yourdomain.com
 ```
 
-Or use a reverse proxy like nginx with Let's Encrypt.
+Or use nginx + Let's Encrypt for a traditional reverse proxy setup.
+
+---
 
 ## 📡 REST API
 
-Claw Missions has a full REST API — useful for automation and AI assistants:
+Full REST API — designed for AI agents and automation:
 
 ```bash
 # Login
@@ -95,68 +119,56 @@ curl -X POST http://localhost:5679/api/files/upload \
   -F "file=@/path/to/document.pdf"
 
 # Search files
-curl http://localhost:5679/api/files/search?q=passport \
+curl "http://localhost:5679/api/files/search?q=passport" \
   -H "Authorization: Bearer $TOKEN"
 
-# Add a tag
+# Tag a file
 curl -X POST http://localhost:5679/api/files/1/tags \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '[1, 2]'
 ```
 
-Full API docs available at `http://localhost:5679/docs` (Swagger UI).
+Full interactive docs at `http://localhost:5679/docs` (Swagger UI).
+
+---
 
 ## 🏗️ Tech Stack
 
-| Layer | Tech |
-|-------|------|
-| Frontend | React + Vite + Tailwind CSS |
-| Backend | Python + FastAPI |
-| Database | SQLite (via SQLAlchemy) |
-| Auth | JWT tokens |
-| Storage | Real filesystem (files are actual files) |
-| Container | Docker + docker-compose |
+- **Frontend** — React + Vite + Tailwind CSS
+- **Backend** — Python + FastAPI
+- **Database** — SQLite via SQLAlchemy
+- **Auth** — JWT tokens + bcrypt
+- **Storage** — Real filesystem (files are actual files)
+- **Container** — Docker + docker-compose
 
-## 📂 Project Structure
-
-```
-clawmissions/
-├── backend/
-│   └── app/
-│       ├── main.py          # FastAPI app
-│       ├── routers/         # API routes (auth, files, tags)
-│       ├── models.py        # Database models
-│       ├── schemas.py       # Pydantic schemas
-│       └── utils/           # Storage, thumbnails
-├── frontend/
-│   └── src/
-│       ├── pages/           # Browse, Login, Search
-│       ├── components/      # FileGrid, Preview, Sidebar
-│       └── api.js           # API client
-├── .env.example
-├── docker-compose.yml
-├── Dockerfile
-└── start.sh                 # Native startup script
-```
+---
 
 ## 🔐 Security
 
-Claw Missions includes rate limiting, bcrypt password hashing, CORS lockdown, and strong JWT signing. For deployments storing sensitive files, we recommend adding **Cloudflare Access** (free) as a second authentication layer.
+Rate limiting, bcrypt password hashing, CORS lockdown, and strong JWT signing are all included. For sensitive deployments, add **Cloudflare Access** as a second auth layer (free tier available).
 
 See [SECURITY.md](./SECURITY.md) for the full guide.
 
-## 🤝 Contributing
+---
 
-PRs welcome! Ideas for future features:
+## 🗺️ Roadmap
 
 - [ ] Multi-user support
 - [ ] Folder organization
-- [ ] Bulk operations (bulk tag, bulk delete)
+- [ ] Bulk operations (tag, delete, move)
 - [ ] Full-text search inside documents
 - [ ] Share links (public file sharing)
-- [ ] Duplicate detection
-- [ ] Mobile app (React Native)
+- [ ] Machine monitor dashboard
+- [ ] OpenClaw deep integration (agent memory store)
+
+---
+
+## 🤝 Contributing
+
+PRs welcome. Open an issue first for big changes.
+
+---
 
 ## 📄 License
 
@@ -164,4 +176,4 @@ MIT — use it, fork it, make it yours.
 
 ---
 
-Built with ❤️ by [@travislius](https://github.com/travislius)
+Built by [@travislius](https://github.com/travislius)
