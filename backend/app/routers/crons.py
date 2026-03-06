@@ -2,7 +2,9 @@ import json
 import re
 import subprocess
 import time
-from fastapi import APIRouter, Depends
+from typing import Optional
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from ..auth import get_current_user
 
 router = APIRouter()
@@ -110,12 +112,17 @@ def _fetch_openclaw_crons() -> list[dict]:
             "id":        job["id"],
             "name":      job["name"],
             "source":    "openclaw",
+            "kind":      schedule.get("kind", "cron"),
             "category":  _categorize(job["name"]),
             "hour":      parsed["hour"],
             "minute":    parsed["minute"],
             "days":      parsed["days"],
             "expr":      expr,
             "tz":        tz,
+            "enabled":   job.get("enabled", True),
+            "agent_id":  job.get("agentId"),
+            "wake_mode": job.get("wakeMode", "now"),
+            "session_target": job.get("sessionTarget", "isolated"),
             "status":    state.get("lastStatus", "unknown"),
             "next_run":  _ms_to_relative(state.get("nextRunAtMs")),
             "last_run":  _ms_to_relative(state.get("lastRunAtMs")),
@@ -194,3 +201,39 @@ def get_cron_jobs(current_user=Depends(get_current_user)):
         "by_category": by_category,
         "by_status": by_status,
     }
+
+
+# ── Edit endpoint ─────────────────────────────────────────────────────────────
+
+class EditCronRequest(BaseModel):
+    name:           Optional[str] = None
+    cron:           Optional[str] = None   # raw cron expression e.g. "0 3 * * *"
+    tz:             Optional[str] = None   # IANA timezone
+    session:        Optional[str] = None   # main | isolated
+    wake:           Optional[str] = None   # now | next-heartbeat
+    enabled:        Optional[bool] = None
+    timeout_seconds: Optional[int] = None
+
+
+@router.patch("/{job_id}", tags=["crons"])
+def edit_cron_job(job_id: str, body: EditCronRequest, current_user=Depends(get_current_user)):
+    cmd = ["openclaw", "cron", "edit", job_id]
+
+    if body.name           is not None: cmd.extend(["--name",            body.name])
+    if body.cron           is not None: cmd.extend(["--cron",            body.cron])
+    if body.tz             is not None: cmd.extend(["--tz",              body.tz])
+    if body.session        is not None: cmd.extend(["--session",         body.session])
+    if body.wake           is not None: cmd.extend(["--wake",            body.wake])
+    if body.timeout_seconds is not None: cmd.extend(["--timeout-seconds", str(body.timeout_seconds)])
+
+    if body.enabled is True:  cmd.append("--enable")
+    if body.enabled is False: cmd.append("--disable")
+
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+        if result.returncode != 0:
+            raise HTTPException(status_code=400, detail=result.stderr.strip() or "Edit failed")
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=504, detail="openclaw timed out")
+
+    return {"ok": True, "job_id": job_id}
