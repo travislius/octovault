@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  FolderOpen, Monitor, CalendarDays, LayoutDashboard, Users, Brain, GripVertical, Radio, FolderKanban, ListTodo, Puzzle
+  FolderOpen, Monitor, CalendarDays, LayoutDashboard, Users, Brain, GripVertical, Radio, FolderKanban, ListTodo, Puzzle, Bot
 } from 'lucide-react';
 import { useStore } from '../store';
 
@@ -16,6 +16,7 @@ const ICON_MAP = {
   FolderKanban,
   ListTodo,
   Puzzle,
+  Bot,
 };
 
 const DEFAULT_NAV = [
@@ -27,6 +28,7 @@ const DEFAULT_NAV = [
   { id: 'calendar',  label: 'Schedule',           path: '/calendar',  icon: 'CalendarDays',    section: 'monitor' },
   { id: 'team',      label: 'Team',              path: '/team',      icon: 'Users',           section: 'monitor' },
   { id: 'sessions',  label: 'Sessions',           path: '/sessions',  icon: 'Radio',           section: 'monitor' },
+  { id: 'agents',    label: 'Agents',             path: '/agents',    icon: 'Bot',             section: 'monitor' },
   { id: 'files',     label: 'Documents',          path: '/files',     icon: 'FolderOpen',      section: 'vault' },
   { id: 'skills',    label: 'Skills',             path: '/skills',    icon: 'Puzzle',          section: 'vault' },
 ];
