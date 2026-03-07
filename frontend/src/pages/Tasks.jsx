@@ -43,9 +43,9 @@ const BOARD_COLUMNS = ['backlog', 'todo', 'in-progress', 'done', 'blocked'];
 
 // ── Task Form Modal ─────────────────────────────────────────────────────────
 
-function TaskForm({ task, onSave, onCancel }) {
+function TaskForm({ task, defaultStatus, onSave, onCancel }) {
   const [form, setForm] = useState({
-    title: '', description: '', status: 'todo', priority: 'medium',
+    title: '', description: '', status: defaultStatus || 'todo', priority: 'medium',
     created_by: 'tia', tags: '', notes: '', due_date: '',
     ...(task || {}),
   });
@@ -447,6 +447,12 @@ export default function Tasks() {
                     </div>
                   )}
                 </div>
+                <button
+                  onClick={() => setEditing({ status: colStatus })}
+                  className="w-full flex items-center gap-1.5 px-2 py-1.5 mt-1 rounded-lg text-xs text-gray-600 hover:text-gray-300 hover:bg-gray-800/60 transition"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Add task
+                </button>
               </div>
             );
           })}
@@ -456,7 +462,8 @@ export default function Tasks() {
       {/* Modal */}
       {editing && (
         <TaskForm
-          task={editing === 'new' ? null : editing}
+          task={editing === 'new' ? null : (editing.id ? editing : null)}
+          defaultStatus={editing !== 'new' && !editing.id ? editing.status : undefined}
           onSave={handleSave}
           onCancel={() => setEditing(null)}
         />
