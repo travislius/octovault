@@ -12,6 +12,7 @@ import Team from './pages/Team';
 import Projects from './pages/Projects';
 import Memory from './pages/Memory';
 import Sessions from './pages/Sessions';
+import Tasks from './pages/Tasks';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 
@@ -76,6 +77,7 @@ export default function App() {
             <Route path="/team" element={<Team />} />
             <Route path="/projects" element={<Projects />} />
             <Route path="/sessions" element={<Sessions />} />
+            <Route path="/tasks" element={<Tasks />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

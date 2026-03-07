@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Table
+from sqlalchemy import Column, Integer, String, DateTime, Text, ForeignKey, Table
 from sqlalchemy.orm import relationship
 
 from .database import Base
@@ -48,3 +48,19 @@ class Tag(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     files = relationship("File", secondary=file_tags, back_populates="tags")
+
+
+class Task(Base):
+    __tablename__ = "tasks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, nullable=False)
+    description = Column(Text, default="")
+    status = Column(String, default="todo")       # todo | in-progress | done | blocked
+    priority = Column(String, default="medium")    # low | medium | high | urgent
+    created_by = Column(String, default="tia")     # tia | travis
+    tags = Column(String, default="")              # comma-separated
+    notes = Column(Text, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    due_date = Column(String, default=None, nullable=True)

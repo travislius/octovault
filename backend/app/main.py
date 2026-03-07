@@ -16,6 +16,7 @@ from .routers import files as files_router
 from .routers import tags as tags_router
 from .routers import system as system_router
 from .routers import crons as crons_router
+from .routers import tasks as tasks_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -51,6 +52,7 @@ app.include_router(files_router.router, prefix="/api/files", tags=["files"])
 app.include_router(tags_router.router, prefix="/api/tags", tags=["tags"])
 app.include_router(system_router.router, prefix="/api/system", tags=["system"])
 app.include_router(crons_router.router, prefix="/api/crons", tags=["crons"])
+app.include_router(tasks_router.router, prefix="/api/tasks", tags=["tasks"])
 
 
 @app.on_event("startup")
