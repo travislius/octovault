@@ -47,7 +47,7 @@ export default function Sessions() {
 
   const fetchSessions = async (isBackground = false) => {
     try {
-      const res = await fetch(`${API}/api/sessions`, {
+      const res = await fetch(`${API}/api/system/sessions`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
