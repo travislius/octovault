@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { RefreshCw, FolderKanban, LayoutGrid, FileText, Save, X, Pencil, Eye, Code2 } from 'lucide-react';
+import { RefreshCw, FolderKanban, LayoutGrid, FileText, Save, X, Pencil, Trash2, AlertTriangle } from 'lucide-react';
 import api from '../api';
 
 function timeAgo(ms) {
@@ -173,19 +173,24 @@ function renderMarkdown(text) {
 
 // ── Edit Dialog ──────────────────────────────────────────────────────────────
 
-function ProjectEditDialog({ project, onSave, onClose, saving }) {
+function ProjectEditDialog({ project, onSave, onDelete, onClose, saving, deleting }) {
   const [draft, setDraft] = useState(project.rawSection);
-  const [tab, setTab] = useState('edit'); // 'edit' | 'preview'
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const textareaRef = useRef(null);
   const badge = STATUS_BADGE[project.statusEmoji];
   const hasChanges = draft !== project.rawSection;
 
   // Trap escape key
   useEffect(() => {
-    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    const handler = (e) => {
+      if (e.key === 'Escape') {
+        if (confirmDelete) setConfirmDelete(false);
+        else onClose();
+      }
+    };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [onClose]);
+  }, [onClose, confirmDelete]);
 
   // Prevent body scroll while open
   useEffect(() => {
@@ -195,15 +200,15 @@ function ProjectEditDialog({ project, onSave, onClose, saving }) {
 
   // Auto-focus textarea on open
   useEffect(() => {
-    if (tab === 'edit' && textareaRef.current) {
+    if (textareaRef.current) {
       textareaRef.current.focus();
       textareaRef.current.setSelectionRange(0, 0);
     }
-  }, [tab]);
+  }, []);
 
   const handleSave = () => onSave(project, draft, onClose);
 
-  // Keyboard shortcut: Cmd/Ctrl+S to save
+  // ⌘S to save
   useEffect(() => {
     const handler = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
@@ -218,13 +223,11 @@ function ProjectEditDialog({ project, onSave, onClose, saving }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
       {/* Dialog */}
-      <div className="relative w-full max-w-5xl max-h-[90vh] bg-gray-950 border border-gray-700 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+      <div className="relative w-full max-w-6xl bg-gray-950 border border-gray-700 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+        style={{ height: 'min(90vh, 800px)' }}>
 
         {/* Header */}
         <div className="flex items-center gap-4 px-6 py-4 border-b border-gray-800 shrink-0">
@@ -240,65 +243,78 @@ function ProjectEditDialog({ project, onSave, onClose, saving }) {
               {project.statusEmoji} {project.statusLabel}
             </span>
           )}
-
-          {/* Tab switcher */}
-          <div className="flex bg-gray-800 rounded-lg p-0.5 shrink-0">
-            <button
-              onClick={() => setTab('edit')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition ${
-                tab === 'edit' ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-white'
-              }`}
-            >
-              <Code2 className="w-3 h-3" /> Edit
-            </button>
-            <button
-              onClick={() => setTab('preview')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition ${
-                tab === 'preview' ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-white'
-              }`}
-            >
-              <Eye className="w-3 h-3" /> Preview
-            </button>
-          </div>
-
           <button onClick={onClose} className="shrink-0 p-2 rounded-lg text-gray-500 hover:text-white hover:bg-gray-800 transition">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Body */}
-        <div className="flex-1 overflow-hidden">
-          {tab === 'edit' ? (
-            <div className="h-full flex flex-col">
-              <textarea
-                ref={textareaRef}
-                value={draft}
-                onChange={e => setDraft(e.target.value)}
-                className="flex-1 w-full bg-transparent px-6 py-4 text-sm text-gray-200 font-mono leading-relaxed focus:outline-none resize-none overflow-y-auto"
-                placeholder="Markdown content..."
-                spellCheck={false}
-                style={{ minHeight: 0 }}
-              />
-              {/* Character count */}
-              <div className="px-6 py-1 text-xs text-gray-700 border-t border-gray-800/50 flex items-center gap-3">
-                <span>{draft.split('\n').length} lines</span>
-                <span>{draft.length} chars</span>
-                {hasChanges && <span className="text-amber-500/70">● unsaved changes</span>}
-              </div>
+        {/* Body — split pane */}
+        <div className="flex-1 flex overflow-hidden min-h-0">
+          {/* Left: Editor */}
+          <div className="flex-1 flex flex-col border-r border-gray-800 min-w-0">
+            <div className="px-4 py-2 border-b border-gray-800/60 shrink-0">
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Markdown</span>
             </div>
-          ) : (
-            <div className="h-full overflow-y-auto px-6 py-4">
+            <textarea
+              ref={textareaRef}
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              className="flex-1 w-full bg-transparent px-5 py-3 text-sm text-gray-200 font-mono leading-relaxed focus:outline-none resize-none overflow-y-auto"
+              placeholder="Markdown content..."
+              spellCheck={false}
+              style={{ minHeight: 0 }}
+            />
+            <div className="px-5 py-1.5 text-xs text-gray-700 border-t border-gray-800/50 flex items-center gap-3 shrink-0">
+              <span>{draft.split('\n').length} lines</span>
+              <span>{draft.length} chars</span>
+              {hasChanges && <span className="text-amber-500/70">● unsaved</span>}
+            </div>
+          </div>
+
+          {/* Right: Preview */}
+          <div className="flex-1 flex flex-col min-w-0">
+            <div className="px-4 py-2 border-b border-gray-800/60 shrink-0">
+              <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Preview</span>
+            </div>
+            <div className="flex-1 overflow-y-auto px-5 py-3">
               {renderMarkdown(draft)}
             </div>
-          )}
+          </div>
         </div>
 
         {/* Footer */}
         <div className="flex items-center justify-between px-6 py-4 border-t border-gray-800 shrink-0 bg-gray-950">
-          <p className="text-xs text-gray-600">
-            {tab === 'edit' ? 'Tip: ⌘S to save' : 'Rendered preview of your edits'}
-          </p>
+          {/* Delete zone */}
+          {!confirmDelete ? (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition"
+            >
+              <Trash2 className="w-3.5 h-3.5" /> Delete project
+            </button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+              <span className="text-xs text-red-300">Delete "{project.name}"?</span>
+              <button
+                onClick={() => onDelete(project, onClose)}
+                disabled={deleting}
+                className="px-3 py-1 rounded-lg text-xs bg-red-600 hover:bg-red-500 text-white font-medium transition disabled:opacity-50"
+              >
+                {deleting ? 'Deleting…' : 'Yes, delete'}
+              </button>
+              <button
+                onClick={() => setConfirmDelete(false)}
+                className="px-3 py-1 rounded-lg text-xs text-gray-500 hover:text-white hover:bg-gray-800 transition"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+
+          {/* Save zone */}
           <div className="flex items-center gap-3">
+            <span className="text-xs text-gray-700 hidden sm:inline">⌘S to save</span>
             {hasChanges && (
               <button
                 onClick={() => setDraft(project.rawSection)}
@@ -413,6 +429,7 @@ export default function Projects() {
   const [refreshing, setRefreshing] = useState(false);
   const [view, setView] = useState('grid');
   const [savingId, setSavingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
   const [editingProject, setEditingProject] = useState(null);
 
   const fetchData = async (bg = false) => {
@@ -447,6 +464,23 @@ export default function Projects() {
       alert('Failed to save. Check console for details.');
     } finally {
       setSavingId(null);
+    }
+  };
+
+  const handleDelete = async (project, onDone) => {
+    setDeletingId(project.name);
+    try {
+      await api.delete('/system/projects', {
+        data: { section: project.headingText || project.name },
+      });
+      onDone();
+      setEditingProject(null);
+      fetchData(true);
+    } catch (err) {
+      console.error('Failed to delete project section:', err);
+      alert('Failed to delete. Check console for details.');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -525,8 +559,10 @@ export default function Projects() {
         <ProjectEditDialog
           project={editingProject}
           onSave={handleSave}
+          onDelete={handleDelete}
           onClose={() => setEditingProject(null)}
           saving={savingId === editingProject.name}
+          deleting={deletingId === editingProject.name}
         />
       )}
     </>

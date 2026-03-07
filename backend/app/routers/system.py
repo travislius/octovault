@@ -470,6 +470,33 @@ def update_project_section(
     return {"ok": True}
 
 
+@router.delete("/projects", tags=["system"])
+def delete_project_section(
+    payload: dict,
+    current_user=Depends(get_current_user),
+):
+    """Delete a specific ## section from PROJECTS.md."""
+    import re
+
+    section = payload.get("section")
+    if not section:
+        raise HTTPException(status_code=400, detail="section required")
+
+    try:
+        full = PROJECTS_FILE.read_text(encoding="utf-8")
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Cannot read PROJECTS.md: {e}")
+
+    # Match the section and everything until the next ## heading or end of file
+    pattern = rf'\n## {re.escape(section)}.*?(?=\n## |\Z)'
+    new_full, count = re.subn(pattern, "", full, flags=re.DOTALL)
+    if count == 0:
+        raise HTTPException(status_code=404, detail=f"Section '{section}' not found")
+
+    PROJECTS_FILE.write_text(new_full.rstrip() + "\n", encoding="utf-8")
+    return {"ok": True}
+
+
 @router.get("/skills/{skill_id}", tags=["system"])
 def get_skill_content(skill_id: str, current_user=Depends(get_current_user)):
     """Return the raw SKILL.md content for a given skill id."""

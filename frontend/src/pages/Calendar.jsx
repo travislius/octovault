@@ -275,11 +275,12 @@ function DetailModal({ job, onClose, onEdit }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden">
-        <div className={`px-5 py-4 ${c.bg} border-b border-gray-800`}>
+        <div className="px-5 py-4 border-b border-gray-800">
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${c.badge}`}>{c.label}</span>
+                <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${c.dot}`} />
+                <span className="text-xs font-semibold text-gray-400 bg-gray-800 px-2 py-0.5 rounded-full">{c.label}</span>
                 {job.kind && (
                   <span className={`text-xs px-2 py-0.5 rounded-full font-mono ${KIND_BADGE[job.kind] || KIND_BADGE.cron}`}>
                     {job.kind}
@@ -290,7 +291,7 @@ function DetailModal({ job, onClose, onEdit }) {
                   {job.status}
                 </span>
               </div>
-              <h2 className={`text-lg font-bold ${c.text} leading-tight`}>{job.name}</h2>
+              <h2 className="text-lg font-bold text-white leading-tight">{job.name}</h2>
             </div>
             <div className="flex gap-1 shrink-0">
               {job.source === 'openclaw' && (
@@ -394,23 +395,24 @@ function DetailModal({ job, onClose, onEdit }) {
 function CronTile({ job, layout, onClick }) {
   const c = CAT[job.category] || CAT.system;
   const { col, total } = layout;
-  const topPx  = (job.hour * 60 + job.minute) / 60 * HOUR_PX;
-  const pct    = (v) => `${(v * 100).toFixed(1)}%`;
-  const left   = pct(col / total);
-  const width  = pct(1 / total);
-  const gap    = total > 1 ? 2 : 0;
+  const topPx = (job.hour * 60 + job.minute) / 60 * HOUR_PX;
+  const pct   = (v) => `${(v * 100).toFixed(1)}%`;
+  const left  = pct(col / total);
+  const width = pct(1 / total);
+  const gap   = total > 1 ? 2 : 0;
 
   return (
     <button
       onClick={() => onClick(job)}
-      className={`absolute ${c.bg} ${c.border} border rounded-lg px-1.5 py-1 text-left hover:brightness-125 transition cursor-pointer overflow-hidden`}
+      className="absolute bg-gray-800/90 border border-gray-700/80 rounded-lg px-1.5 py-1 text-left hover:bg-gray-750 hover:border-gray-600 transition cursor-pointer overflow-hidden"
       style={{ top: `${topPx}px`, left: `calc(${left} + 2px)`, width: `calc(${width} - ${4 + gap}px)`, minHeight: '30px', zIndex: 1 }}
     >
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1.5">
+        <span className={`w-2 h-2 rounded-full shrink-0 ${c.dot}`} />
         <StatusIcon status={job.status} size="w-2.5 h-2.5" />
-        <span className={`text-xs font-medium ${c.text} truncate leading-tight`}>{job.name}</span>
+        <span className="text-xs font-medium text-gray-200 truncate leading-tight">{job.name}</span>
       </div>
-      <p className="text-xs text-gray-500 leading-none mt-0.5">{fmtTime(job.hour, job.minute)}</p>
+      <p className="text-xs text-gray-500 leading-none mt-0.5 pl-3.5">{fmtTime(job.hour, job.minute)}</p>
     </button>
   );
 }
