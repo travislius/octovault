@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import {
   Calendar as CalIcon, RefreshCw, X, AlertTriangle, CheckCircle,
   HelpCircle, ChevronDown, ChevronUp, ChevronLeft, ChevronRight,
@@ -435,6 +435,44 @@ function Legend({ summary }) {
   );
 }
 
+// ── Category Filter Bar ───────────────────────────────────────────────────────
+function CategoryFilter({ active, counts, onChange }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      <button
+        onClick={() => onChange(null)}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition border ${
+          active === null
+            ? 'bg-gray-700 border-gray-600 text-white'
+            : 'bg-gray-800/50 border-gray-700/50 text-gray-400 hover:text-white hover:border-gray-600'
+        }`}
+      >
+        All
+        <span className="text-gray-500 text-xs">{Object.values(counts).reduce((a, b) => a + b, 0)}</span>
+      </button>
+      {Object.entries(CAT).map(([key, c]) => {
+        const count = counts[key] || 0;
+        if (!count) return null;
+        return (
+          <button
+            key={key}
+            onClick={() => onChange(active === key ? null : key)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition border ${
+              active === key
+                ? `${c.badge} border-transparent`
+                : 'bg-gray-800/50 border-gray-700/50 text-gray-400 hover:text-white hover:border-gray-600'
+            }`}
+          >
+            <span className={`w-2 h-2 rounded-full ${c.dot}`} />
+            {c.label}
+            <span className={active === key ? 'opacity-70' : 'text-gray-600'}>{count}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function CalendarPage() {
   const activeAgent = ACTIVE_AGENT;
@@ -443,6 +481,7 @@ export default function CalendarPage() {
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
   const [calView, setCalView] = useState(isMobile ? 'day' : 'week');
   const [dayDate, setDayDate] = useState(new Date());
+  const [filterCat, setFilterCat] = useState(null);
 
   const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
@@ -494,7 +533,9 @@ export default function CalendarPage() {
     </div>
   );
 
-  const jobs = data.jobs || [];
+  const allJobs = data.jobs || [];
+  const catCounts = allJobs.reduce((acc, j) => { acc[j.category] = (acc[j.category] || 0) + 1; return acc; }, {});
+  const jobs = filterCat ? allJobs.filter(j => j.category === filterCat) : allJobs;
   const byDay = DAYS.map((_, di) => jobs.filter(j => j.days.includes(di)));
   const layouts = byDay.map(computeLayout);
   const todayIdx = (new Date().getDay() + 6) % 7;
@@ -539,6 +580,7 @@ export default function CalendarPage() {
         </div>
 
         <Legend summary={data} />
+        <CategoryFilter active={filterCat} counts={catCounts} onChange={setFilterCat} />
       </div>
 
       {/* Day navigation (day view only) */}

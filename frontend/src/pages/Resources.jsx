@@ -133,7 +133,7 @@ export default function Resources() {
         <div>
           <h1 className="text-xl font-bold text-white flex items-center gap-2">
             <Zap className="w-5 h-5 text-red-400" />
-            Machine Resources
+            Fleet
           </h1>
           <p className="text-xs text-gray-500 mt-0.5">
             Auto-refreshes every {REFRESH_MS / 1000}s
@@ -317,6 +317,69 @@ export default function Resources() {
           </div>
         )}
       </Card>
+
+      {/* GPU card — shown when gpu data present */}
+      {gpu && (
+        <Card icon={Zap} title="GPU" accent="yellow">
+          <div className="flex items-start justify-between mb-4">
+            <div>
+              <p className="text-sm font-semibold text-white">{gpu.name}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{gpu.vram_gb} GB unified VRAM</p>
+            </div>
+            {gpu.usage_pct != null
+              ? <span className="text-xs bg-green-500/20 text-green-300 px-2 py-1 rounded-full">Vulkan active ✓</span>
+              : <span className="text-xs bg-yellow-500/20 text-yellow-300 px-2 py-1 rounded-full">idle</span>
+            }
+          </div>
+
+          {gpu.usage_pct != null && (
+            <div className="mb-4">
+              <div className="flex justify-between mb-1">
+                <span className="text-xs text-gray-500">GPU usage</span>
+                <span className="text-xl font-bold text-white">{gpu.usage_pct.toFixed(1)}%</span>
+              </div>
+              <Bar value={gpu.usage_pct} color="yellow" />
+            </div>
+          )}
+
+          {gpu.vram_used_gb != null && (
+            <div className="mb-4">
+              <div className="flex justify-between mb-1">
+                <span className="text-xs text-gray-500">VRAM used</span>
+                <span className="text-sm font-bold text-white">{gpu.vram_used_gb} / {gpu.vram_gb} GB</span>
+              </div>
+              <Bar value={(gpu.vram_used_gb / gpu.vram_gb) * 100} color="yellow" />
+            </div>
+          )}
+
+          {gpu.temp_c != null && (
+            <StatRow label="Temperature" value={`${gpu.temp_c}°C`} />
+          )}
+          {gpu.power_w != null && (
+            <StatRow label="Power draw" value={`${gpu.power_w} W`} />
+          )}
+
+          {gpu.driver_note && (
+            <p className="text-xs text-gray-600 mt-3 pt-3 border-t border-gray-800 italic">{gpu.driver_note}</p>
+          )}
+
+          {gpu.ollama_models?.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-gray-800">
+              <p className="text-xs text-gray-500 mb-2">Ollama models loaded</p>
+              {gpu.ollama_models.map((m, i) => (
+                <div key={i} className="flex justify-between text-xs">
+                  <span className="text-gray-300 font-mono">{m.name}</span>
+                  <span className="text-gray-500">{m.size_gb} GB</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {gpu.ollama_models?.length === 0 && (
+            <p className="text-xs text-gray-600 mt-3">No models loaded · <span className="text-gray-500">pull a model to see it here</span></p>
+          )}
+        </Card>
+      )}
     </div>
   );
 }

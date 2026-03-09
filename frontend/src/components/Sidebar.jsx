@@ -24,7 +24,7 @@ const DEFAULT_NAV = [
   { id: 'tasks',     label: 'Tasks',             path: '/tasks',     icon: 'ListTodo',        section: 'main' },
   { id: 'memory',    label: 'Memory',            path: '/memory',    icon: 'Brain',           section: 'main' },
   { id: 'projects',  label: 'Projects',           path: '/projects',  icon: 'FolderKanban',    section: 'main' },
-  { id: 'resources', label: 'System',             path: '/resources', icon: 'Monitor',         section: 'monitor' },
+  { id: 'resources', label: 'Fleet',              path: '/resources', icon: 'Monitor',         section: 'monitor' },
   { id: 'calendar',  label: 'Schedule',           path: '/calendar',  icon: 'CalendarDays',    section: 'monitor' },
   { id: 'team',      label: 'Team',              path: '/team',      icon: 'Users',           section: 'monitor' },
   { id: 'sessions',  label: 'Sessions',           path: '/sessions',  icon: 'Radio',           section: 'monitor' },

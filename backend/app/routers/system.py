@@ -297,8 +297,31 @@ def get_resources_max(current_user=Depends(get_current_user)):
 
 _ZED_SSH = "zed@100.125.85.113"
 
+
+def _get_zed_ollama_models() -> list:
+    """Fetch running/available ollama models from Zed."""
+    try:
+        # Check running models (ps)
+        ps = subprocess.run(
+            ["ssh", "-q", "-o", "ConnectTimeout=3", "-o", "BatchMode=yes",
+             "-o", "StrictHostKeyChecking=no", _ZED_SSH,
+             "curl -s http://localhost:11434/api/tags"],
+            capture_output=True, text=True, timeout=5
+        )
+        if ps.returncode == 0 and ps.stdout.strip():
+            data = json.loads(ps.stdout)
+            return [{"name": m["name"], "size_gb": round(m["size"] / 1024**3, 1)}
+                    for m in data.get("models", [])]
+    except Exception:
+        pass
+    return []
+
 _ZED_SCRIPT = """\
-import json, psutil, time
+import json, psutil, time, os
+
+def _read(p):
+    try: return open(p).read().strip()
+    except: return None
 mem  = psutil.virtual_memory()
 swap = psutil.swap_memory()
 cpu  = psutil.cpu_percent(interval=0.3)
@@ -322,7 +345,18 @@ for p in psutil.disk_partitions(all=False):
         disks.append({"device": p.device, "mountpoint": p.mountpoint, "fstype": p.fstype,
             "total_b": u.total, "used_b": u.used, "free_b": u.free, "percent": u.percent})
     except: pass
+GPU_PCI = "/sys/bus/pci/devices/0000:c3:00.0"
+gpu_busy = _read(f"{GPU_PCI}/gpu_busy_percent")
+gpu_vram_used = _read(f"{GPU_PCI}/mem_info_vram_used")
+gpu_vram_total = _read(f"{GPU_PCI}/mem_info_vram_total")
+gpu_temp_raw = _read("/sys/class/hwmon/hwmon7/temp1_input")
+gpu_power_raw = _read("/sys/class/hwmon/hwmon7/power1_average")
 print(json.dumps({"cpu": cpu, "cpu_cores": cpu_cores,
+    "gpu_busy": int(gpu_busy) if gpu_busy else None,
+    "gpu_vram_used_bytes": int(gpu_vram_used) if gpu_vram_used else None,
+    "gpu_vram_total_bytes": int(gpu_vram_total) if gpu_vram_total else None,
+    "gpu_temp_c": round(int(gpu_temp_raw)/1000, 1) if gpu_temp_raw else None,
+    "gpu_power_w": round(int(gpu_power_raw)/1000000, 1) if gpu_power_raw else None,
     "cpu_phys": psutil.cpu_count(logical=False), "cpu_logi": psutil.cpu_count(logical=True),
     "freq": round(freq.current) if freq else None, "freq_max": round(freq.max) if freq else None,
     "load": list(psutil.getloadavg()),
@@ -394,8 +428,14 @@ def get_resources_zed(current_user=Depends(get_current_user)):
             "download_speed": {"bytes": 0, "human": "—"},
         },
         "gpu": {
-            "name": "Radeon 890M (unified)",
-            "vram_gb": 32,
+            "name": "Radeon 8060S (Strix Halo / GFX1151)",
+            "vram_gb": round(int(raw.get("gpu_vram_total_bytes") or 0) / 1024**3, 1) or 48,
+            "vram_used_gb": round(int(raw.get("gpu_vram_used_bytes") or 0) / 1024**3, 1) if raw.get("gpu_vram_used_bytes") else None,
+            "usage_pct": raw.get("gpu_busy"),
+            "temp_c": raw.get("gpu_temp_c"),
+            "power_w": raw.get("gpu_power_w"),
+            "driver_note": None,
+            "ollama_models": _get_zed_ollama_models(),
         },
         "system": {
             "uptime_seconds": uptime_secs,
