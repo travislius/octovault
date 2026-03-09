@@ -298,20 +298,30 @@ def get_resources_max(current_user=Depends(get_current_user)):
 _ZED_SSH = "zed@100.125.85.113"
 
 
-def _get_zed_ollama_models() -> list:
-    """Fetch running/available ollama models from Zed."""
+def _get_zed_llama_model() -> list:
+    """Fetch the currently loaded model from llama-server on Zed."""
     try:
-        # Check running models (ps)
-        ps = subprocess.run(
+        result = subprocess.run(
             ["ssh", "-q", "-o", "ConnectTimeout=3", "-o", "BatchMode=yes",
              "-o", "StrictHostKeyChecking=no", _ZED_SSH,
-             "curl -s http://localhost:11434/api/tags"],
+             "curl -s http://localhost:8080/props"],
             capture_output=True, text=True, timeout=5
         )
-        if ps.returncode == 0 and ps.stdout.strip():
-            data = json.loads(ps.stdout)
-            return [{"name": m["name"], "size_gb": round(m["size"] / 1024**3, 1)}
-                    for m in data.get("models", [])]
+        if result.returncode == 0 and result.stdout.strip():
+            data = json.loads(result.stdout)
+            model_path = data.get("model_path", "") or ""
+            # Extract just the filename without extension
+            model_name = os.path.basename(model_path).replace(".gguf", "") if model_path else None
+            if model_name:
+                # Try to get file size for display
+                size_result = subprocess.run(
+                    ["ssh", "-q", "-o", "ConnectTimeout=3", "-o", "BatchMode=yes",
+                     "-o", "StrictHostKeyChecking=no", _ZED_SSH,
+                     f"stat -c%s '{model_path}' 2>/dev/null || echo 0"],
+                    capture_output=True, text=True, timeout=5
+                )
+                size_bytes = int(size_result.stdout.strip() or 0)
+                return [{"name": model_name, "size_gb": round(size_bytes / 1024**3, 1)}]
     except Exception:
         pass
     return []
@@ -435,7 +445,7 @@ def get_resources_zed(current_user=Depends(get_current_user)):
             "temp_c": raw.get("gpu_temp_c"),
             "power_w": raw.get("gpu_power_w"),
             "driver_note": None,
-            "ollama_models": _get_zed_ollama_models(),
+            "ollama_models": _get_zed_llama_model(),
         },
         "system": {
             "uptime_seconds": uptime_secs,

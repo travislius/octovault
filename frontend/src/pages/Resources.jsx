@@ -365,7 +365,7 @@ export default function Resources() {
 
           {gpu.ollama_models?.length > 0 && (
             <div className="mt-3 pt-3 border-t border-gray-800">
-              <p className="text-xs text-gray-500 mb-2">Ollama models loaded</p>
+              <p className="text-xs text-gray-500 mb-2">Model loaded</p>
               {gpu.ollama_models.map((m, i) => (
                 <div key={i} className="flex justify-between text-xs">
                   <span className="text-gray-300 font-mono">{m.name}</span>
@@ -376,7 +376,7 @@ export default function Resources() {
           )}
 
           {gpu.ollama_models?.length === 0 && (
-            <p className="text-xs text-gray-600 mt-3">No models loaded · <span className="text-gray-500">pull a model to see it here</span></p>
+            <p className="text-xs text-gray-600 mt-3">No model loaded · <span className="text-gray-500">llama-server may be offline</span></p>
           )}
         </Card>
       )}
