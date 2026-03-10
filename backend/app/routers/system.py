@@ -15,6 +15,7 @@ router = APIRouter()
 CLAWD_DIR = Path("/Users/tiali/clawd")
 SESSIONS_DIR = Path("/Users/tiali/.openclaw/agents/main/sessions")
 PROJECTS_FILE = Path("/Users/tiali/clawd/PROJECTS.md")
+HOST_STATS_FILE = Path("/Users/tiali/clawmissions-data/host_stats.json")
 
 
 @router.get("/memory", tags=["system"])
@@ -63,6 +64,17 @@ def _fmt_bytes(n: int) -> dict:
 
 @router.get("/resources", tags=["system"])
 def get_resources(current_user=Depends(get_current_user)):
+    # Prefer host stats file written by sync_host_stats.sh (accurate Mac Mini data)
+    # Falls back to psutil (which reads Docker container stats, not host)
+    try:
+        if HOST_STATS_FILE.exists():
+            data = json.loads(HOST_STATS_FILE.read_text())
+            age_ms = int(time.time() * 1000) - data.get("_ts", 0)
+            if age_ms < 120_000:  # use if less than 2 minutes old
+                return data
+    except Exception:
+        pass
+
     # CPU
     cpu_percent = psutil.cpu_percent(interval=0.2)
     cpu_per_core = psutil.cpu_percent(interval=0.2, percpu=True)

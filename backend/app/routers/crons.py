@@ -7,6 +7,24 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from ..auth import get_current_user
 
+# ── Host openclaw CLI helper ──────────────────────────────────────────────────
+# Inside Docker, 'openclaw' isn't available. We SSH to the host via
+# host.docker.internal (macOS Docker Desktop) and run it there.
+_OPENCLAW_SSH = [
+    "ssh", "-o", "StrictHostKeyChecking=no", "-o", "ConnectTimeout=10",
+    "-i", "/root/.ssh/id_ed25519",
+    "tiali@host.docker.internal",
+]
+_OPENCLAW_CMD = "/opt/homebrew/bin/node /opt/homebrew/lib/node_modules/openclaw/openclaw.mjs"
+
+def _run_openclaw(args: list[str], timeout: int = 20) -> subprocess.CompletedProcess:
+    """Run an openclaw command on the host via SSH."""
+    remote_cmd = _OPENCLAW_CMD + " " + " ".join(args)
+    return subprocess.run(
+        _OPENCLAW_SSH + [remote_cmd],
+        capture_output=True, text=True, timeout=timeout
+    )
+
 # ── Team config (loaded from team.json, gitignored) ───────────────────────────
 import os as _os
 
@@ -421,20 +439,20 @@ class EditCronRequest(BaseModel):
 
 @router.patch("/{job_id}", tags=["crons"])
 def edit_cron_job(job_id: str, body: EditCronRequest, current_user=Depends(get_current_user)):
-    cmd = ["openclaw", "cron", "edit", job_id]
+    args = ["cron", "edit", job_id]
 
-    if body.name           is not None: cmd.extend(["--name",            body.name])
-    if body.cron           is not None: cmd.extend(["--cron",            body.cron])
-    if body.tz             is not None: cmd.extend(["--tz",              body.tz])
-    if body.session        is not None: cmd.extend(["--session",         body.session])
-    if body.wake           is not None: cmd.extend(["--wake",            body.wake])
-    if body.timeout_seconds is not None: cmd.extend(["--timeout-seconds", str(body.timeout_seconds)])
+    if body.name            is not None: args.extend(["--name",             body.name])
+    if body.cron            is not None: args.extend(["--cron",             body.cron])
+    if body.tz              is not None: args.extend(["--tz",               body.tz])
+    if body.session         is not None: args.extend(["--session",          body.session])
+    if body.wake            is not None: args.extend(["--wake",             body.wake])
+    if body.timeout_seconds is not None: args.extend(["--timeout-seconds",  str(body.timeout_seconds)])
 
-    if body.enabled is True:  cmd.append("--enable")
-    if body.enabled is False: cmd.append("--disable")
+    if body.enabled is True:  args.append("--enable")
+    if body.enabled is False: args.append("--disable")
 
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+        result = _run_openclaw(args)
         if result.returncode != 0:
             raise HTTPException(status_code=400, detail=result.stderr.strip() or "Edit failed")
     except subprocess.TimeoutExpired:
