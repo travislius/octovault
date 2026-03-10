@@ -7,6 +7,9 @@ services:
       - /Users/tiali/clawmissions-data:/Users/tiali/clawmissions-data
       - /Users/tiali/.ssh/id_ed25519:/root/.ssh/id_ed25519:ro
       - /Users/tiali/.ssh/known_hosts:/root/.ssh/known_hosts:ro
+      - /Users/tiali/.openclaw/cron:/openclaw/cron:ro
+    environment:
+      OPENCLAW_CRON_PATH: /openclaw/cron/jobs.json
     env_file:
       - .env
     restart: unless-stopped

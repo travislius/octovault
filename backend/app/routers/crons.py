@@ -156,16 +156,25 @@ def _fetch_openclaw_crons_ssh(host: str, ssh_user: str, cmd: str = "openclaw") -
         return []
 
 
+_CRONS_JSON_PATH = _os.environ.get("OPENCLAW_CRON_PATH", "/openclaw/cron/jobs.json")
+
 def _fetch_openclaw_crons() -> list[dict]:
+    # Primary: read directly from mounted OpenClaw cron file
     try:
-        result = subprocess.run(
-            ["openclaw", "cron", "list", "--json"],
-            capture_output=True, text=True, timeout=15
-        )
-        data = json.loads(result.stdout)
+        with open(_CRONS_JSON_PATH) as f:
+            data = json.load(f)
         jobs = data.get("jobs", [])
     except Exception:
-        return []
+        # Fallback: try openclaw CLI (works on host, not in Docker)
+        try:
+            result = subprocess.run(
+                ["openclaw", "cron", "list", "--json"],
+                capture_output=True, text=True, timeout=15
+            )
+            data = json.loads(result.stdout)
+            jobs = data.get("jobs", [])
+        except Exception:
+            return []
 
     out = []
     for job in jobs:
