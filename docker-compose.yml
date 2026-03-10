@@ -4,7 +4,9 @@ services:
     ports:
       - "5679:5679"
     volumes:
-      - ./data:/data
+      - /Users/tiali/clawmissions-data:/Users/tiali/clawmissions-data
+      - /Users/tiali/.ssh/id_ed25519:/root/.ssh/id_ed25519:ro
+      - /Users/tiali/.ssh/known_hosts:/root/.ssh/known_hosts:ro
     env_file:
       - .env
     restart: unless-stopped
