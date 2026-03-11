@@ -1,5 +1,6 @@
 import json
 import re
+import shlex
 import subprocess
 import time
 from typing import Optional
@@ -19,7 +20,7 @@ _OPENCLAW_CMD = "/opt/homebrew/bin/node /opt/homebrew/lib/node_modules/openclaw/
 
 def _run_openclaw(args: list[str], timeout: int = 20) -> subprocess.CompletedProcess:
     """Run an openclaw command on the host via SSH."""
-    remote_cmd = _OPENCLAW_CMD + " " + " ".join(args)
+    remote_cmd = _OPENCLAW_CMD + " " + " ".join(shlex.quote(a) for a in args)
     return subprocess.run(
         _OPENCLAW_SSH + [remote_cmd],
         capture_output=True, text=True, timeout=timeout

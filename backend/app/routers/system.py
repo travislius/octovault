@@ -87,24 +87,19 @@ def get_resources(current_user=Depends(get_current_user)):
     mem = psutil.virtual_memory()
     swap = psutil.swap_memory()
 
-    # Disk — only show root + real external volumes (skip macOS system sub-volumes)
+    # Disk — only show Tia's main disk plus the external SSD
     _seen_devices = set()
+    _allowed_mounts = {"/", "/Volumes/Tia Ext"}
     disks = []
     for part in psutil.disk_partitions(all=False):
         mp = part.mountpoint
-        # Skip macOS hidden system volumes, simulator images, and duplicate mounts
-        if mp.startswith("/System/Volumes/"):
-            continue
-        if mp.startswith("/Library/Developer/"):
+        if mp not in _allowed_mounts:
             continue
         if part.device in _seen_devices:
             continue
         _seen_devices.add(part.device)
         try:
             usage = psutil.disk_usage(mp)
-            # Skip tiny partitions < 1 GB (firmware/recovery volumes)
-            if usage.total < 1 * 1024 ** 3:
-                continue
             disks.append({
                 "device": part.device,
                 "mountpoint": mp,
@@ -178,62 +173,102 @@ def get_resources(current_user=Depends(get_current_user)):
     }
 
 
-# ── Max (Windows PC) resources via SSH ──────────────────────────────────────
+# ── Max (Linux server) resources via SSH ────────────────────────────────────
 
-_MAX_SSH = "tiali@100.84.71.61"
+_MAX_SSH = "max@100.118.6.47"
 
-_PS_SCRIPT = r"""
-$ErrorActionPreference = 'Stop'
-$cpu = (Get-WmiObject Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average
-$os  = Get-WmiObject Win32_OperatingSystem
-$cs  = Get-WmiObject Win32_ComputerSystem
-$memTotal = [long]$os.TotalVisibleMemorySize * 1024
-$memFree  = [long]$os.FreePhysicalMemory * 1024
-$memUsed  = $memTotal - $memFree
-$memPct   = [math]::Round($memUsed / $memTotal * 100, 1)
-$disks = Get-PSDrive -PSProvider FileSystem | Where-Object { $_.Used -ne $null } | ForEach-Object {
-  $total = $_.Used + $_.Free
-  @{ letter=$_.Name; used=$_.Used; free=$_.Free; total=$total;
-     pct=[math]::Round($_.Used/$total*100,1) }
-}
-$net = Get-NetAdapterStatistics | Where-Object { $_.ReceivedBytes -gt 0 } | Select-Object -First 1
-$gpu = (Get-WmiObject -Namespace "root\cimv2" -Class Win32_VideoController | Where-Object { $_.AdapterRAM -gt 100MB } | Select-Object -First 1)
-$proc = (Get-Process).Count
-$uptime = (Get-Date) - $os.ConvertToDateTime($os.LastBootUpTime)
-[ordered]@{
-  cpu_pct    = [math]::Round($cpu, 1)
-  mem_total  = $memTotal
-  mem_used   = $memUsed
-  mem_free   = $memFree
-  mem_pct    = $memPct
-  disks      = $disks
-  proc_count = $proc
-  uptime_sec = [long]$uptime.TotalSeconds
-  gpu_name   = if($gpu) { $gpu.Name } else { $null }
-  gpu_ram_gb = if($gpu) { [math]::Round($gpu.AdapterRAM/1GB,1) } else { $null }
-} | ConvertTo-Json -Depth 4
+_LINUX_SCRIPT = r"""
+python3 -c "
+import json, subprocess, os, time
+
+# CPU
+with open('/proc/stat') as f:
+    line = f.readline().split()
+idle1 = int(line[4]); total1 = sum(int(x) for x in line[1:])
+time.sleep(0.2)
+with open('/proc/stat') as f:
+    line = f.readline().split()
+idle2 = int(line[4]); total2 = sum(int(x) for x in line[1:])
+cpu_pct = round(100 * (1 - (idle2-idle1)/(total2-total1)), 1)
+
+# CPU cores + load avg
+try:
+    cpu_cores = len([l for l in open('/proc/cpuinfo').readlines() if l.startswith('processor')])
+    load_avg = [round(float(x),2) for x in open('/proc/loadavg').read().split()[:3]]
+except:
+    cpu_cores = None; load_avg = []
+
+# Memory
+mem = {}
+with open('/proc/meminfo') as f:
+    for l in f:
+        k,v = l.split(':')
+        mem[k.strip()] = int(v.strip().split()[0]) * 1024
+mem_total = mem['MemTotal']
+mem_free  = mem['MemAvailable']
+mem_used  = mem_total - mem_free
+mem_pct   = round(mem_used / mem_total * 100, 1)
+
+# Uptime
+with open('/proc/uptime') as f:
+    uptime_sec = int(float(f.read().split()[0]))
+
+# Disks - include root + all /mnt/* mounts, skip boot/snap
+SKIP_FS = {'tmpfs','devtmpfs','squashfs','overlay','efivarfs','iso9660'}
+SKIP_MNT = {'/boot','/boot/efi','/run','/dev','/sys','/proc'}
+disks = []
+for line in subprocess.check_output(['df','-B1','--output=source,target,fstype,size,used,avail,pcent']).decode().splitlines()[1:]:
+    parts = line.split()
+    if len(parts) < 7: continue
+    src,mnt,fs,size,used,avail,pct = parts
+    if fs in SKIP_FS: continue
+    if any(mnt == s or mnt.startswith(s+'/') for s in SKIP_MNT): continue
+    if int(size) < 500*1024**2: continue
+    disks.append({'device':src,'mountpoint':mnt,'fstype':fs,'total':int(size),'used':int(used),'free':int(avail),'pct':float(pct.rstrip('%'))})
+
+# Process count
+proc_count = sum(1 for e in os.listdir('/proc') if e.isdigit())
+
+# GPU - try nvidia-smi first, fall back to lspci
+gpu_name = None; gpu_ram_gb = None
+try:
+    out = subprocess.check_output(['nvidia-smi','--query-gpu=name,memory.total','--format=csv,noheader,nounits'], timeout=3).decode().strip()
+    parts = out.split(',')
+    gpu_name = parts[0].strip()
+    gpu_ram_gb = round(int(parts[1].strip()) / 1024, 1) if len(parts) > 1 else None
+except:
+    try:
+        lspci = subprocess.check_output(['lspci'], timeout=3).decode()
+        for line in lspci.splitlines():
+            if 'NVIDIA' in line and ('VGA' in line or '3D' in line):
+                gpu_name = line.split(':')[-1].strip(); break
+    except: pass
+
+print(json.dumps({'cpu_pct':cpu_pct,'cpu_cores':cpu_cores,'load_avg':load_avg,'mem_total':mem_total,'mem_used':mem_used,'mem_free':mem_free,'mem_pct':mem_pct,'disks':disks,'proc_count':proc_count,'uptime_sec':uptime_sec,'gpu_name':gpu_name,'gpu_ram_gb':gpu_ram_gb}))
+"
 """
 
 
 def _fmt(n: int | float) -> dict:
-    n = int(n)
+    orig = int(n)
+    f = float(orig)
     for unit in ("B", "KB", "MB", "GB", "TB"):
-        if n < 1024:
-            return {"bytes": n, "human": f"{n:.1f} {unit}"}
-        n //= 1024
-    return {"bytes": n * 1024 ** 4, "human": f"{n:.1f} PB"}
+        if f < 1024:
+            return {"bytes": orig, "human": f"{f:.1f} {unit}"}
+        f /= 1024
+    return {"bytes": orig, "human": f"{f:.1f} PB"}
 
 
 @router.get("/resources/max", tags=["system"])
 def get_resources_max(current_user=Depends(get_current_user)):
-    """Fetch Max (Windows PC) system resources via SSH + PowerShell."""
+    """Fetch Max (Linux PC) system resources via SSH."""
     try:
         result = subprocess.run(
             ["ssh", "-q",
              "-o", "ConnectTimeout=5", "-o", "BatchMode=yes",
              "-o", "StrictHostKeyChecking=no",
              "-o", "LogLevel=ERROR",
-             _MAX_SSH, f"powershell -NoProfile -NonInteractive -Command \"{_PS_SCRIPT.strip()}\""],
+             _MAX_SSH, _LINUX_SCRIPT.strip()],
             capture_output=True, text=True, timeout=15
         )
         if result.returncode != 0:
@@ -256,9 +291,9 @@ def get_resources_max(current_user=Depends(get_current_user)):
         if total < 1 * 1024 ** 3:
             continue
         disks.append({
-            "device": f"{d['letter']}:",
-            "mountpoint": f"{d['letter']}:\\",
-            "fstype": "NTFS",
+            "device": d.get("device", ""),
+            "mountpoint": d.get("mountpoint", ""),
+            "fstype": d.get("fstype", ""),
             "total": _fmt(total),
             "used": _fmt(int(d.get("used") or 0)),
             "free": _fmt(int(d.get("free") or 0)),
@@ -269,11 +304,11 @@ def get_resources_max(current_user=Depends(get_current_user)):
         "cpu": {
             "percent": float(raw.get("cpu_pct") or 0),
             "per_core": [],
-            "count_logical": None,
-            "count_physical": None,
+            "count_logical": raw.get("cpu_cores"),
+            "count_physical": raw.get("cpu_cores"),
             "freq_mhz": None,
             "freq_max_mhz": None,
-            "load_avg": [],
+            "load_avg": raw.get("load_avg", []),
         },
         "memory": {
             "total": _fmt(int(raw.get("mem_total") or 0)),

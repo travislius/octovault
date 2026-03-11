@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Wifi, WifiOff, Monitor, CalendarDays, ChevronRight, Terminal,
-  Apple, Cpu, MemoryStick, HardDrive, MapPin, RefreshCw
+  Apple, Cpu, MapPin, RefreshCw, X
 } from 'lucide-react';
 import api from '../api';
+import ResourcePanel from '../components/ResourcePanel';
 
 const OS_ICON = {
   macOS:   <Apple className="w-3.5 h-3.5" />,
@@ -13,25 +14,59 @@ const OS_ICON = {
 };
 
 const ROLE_COLOR = {
-  tia:    'border-ocean-500/40 bg-ocean-500/5',
-  dexter: 'border-amber-500/40 bg-amber-500/5',
-  sia:    'border-purple-500/40 bg-purple-500/5',
-  zed:    'border-zinc-500/40 bg-zinc-500/5',
+  tia:  'border-ocean-500/40 bg-ocean-500/5',
+  max:  'border-amber-500/40 bg-amber-500/5',
+  sia:  'border-purple-500/40 bg-purple-500/5',
+  zed:  'border-zinc-500/40 bg-zinc-500/5',
 };
 
 const ACCENT = {
-  tia:    { text: 'text-ocean-400',  badge: 'bg-ocean-500/20 text-ocean-300',   dot: 'bg-ocean-400' },
-  dexter: { text: 'text-amber-400',  badge: 'bg-amber-500/20 text-amber-300',   dot: 'bg-amber-400' },
-  sia:    { text: 'text-purple-400', badge: 'bg-purple-500/20 text-purple-300', dot: 'bg-purple-400' },
+  tia:  { text: 'text-ocean-400',  badge: 'bg-ocean-500/20 text-ocean-300',   dot: 'bg-ocean-400' },
+  max:  { text: 'text-amber-400',  badge: 'bg-amber-500/20 text-amber-300',   dot: 'bg-amber-400' },
+  sia:  { text: 'text-purple-400', badge: 'bg-purple-500/20 text-purple-300', dot: 'bg-purple-400' },
+  zed:  { text: 'text-zinc-300',   badge: 'bg-zinc-500/20 text-zinc-300',     dot: 'bg-zinc-400' },
 };
 
-function StatusBadge({ online, hasHost }) {
-  if (online) return (
+const ORDER_KEY = 'clawmissions_team_order';
+const MOBILE_MEMBER_IDS = new Set(['sia']);
+const DEVICE_ENDPOINTS = {
+  tia: '/system/resources',
+  max: '/system/resources/max',
+  zed: '/system/resources/zed',
+};
+const RESOURCE_ACCENTS = {
+  tia: 'ocean',
+  max: 'amber',
+  zed: 'zinc',
+};
+
+function sortMembers(members) {
+  const saved = JSON.parse(localStorage.getItem(ORDER_KEY) || '[]');
+  const rank = new Map(saved.map((id, idx) => [id, idx]));
+  return [...members].sort((a, b) => {
+    const ar = rank.has(a.id) ? rank.get(a.id) : Number.MAX_SAFE_INTEGER;
+    const br = rank.has(b.id) ? rank.get(b.id) : Number.MAX_SAFE_INTEGER;
+    if (ar !== br) return ar - br;
+    return a.name.localeCompare(b.name);
+  });
+}
+
+function persistOrder(members) {
+  localStorage.setItem(ORDER_KEY, JSON.stringify(members.map((m) => m.id)));
+}
+
+function StatusBadge({ member }) {
+  if (member.online) return (
     <span className="flex items-center gap-1.5 text-xs text-green-400">
       <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" /> Online
     </span>
   );
-  if (!hasHost) return (
+  if (MOBILE_MEMBER_IDS.has(member.id)) return (
+    <span className="flex items-center gap-1.5 text-xs text-purple-300">
+      <span className="w-2 h-2 rounded-full bg-purple-400" /> On the go
+    </span>
+  );
+  if (!member.has_host) return (
     <span className="flex items-center gap-1.5 text-xs text-gray-500">
       <span className="w-2 h-2 rounded-full bg-gray-600" /> No connection
     </span>
@@ -43,11 +78,60 @@ function StatusBadge({ online, hasHost }) {
   );
 }
 
-function MemberCard({ member, onViewCalendar }) {
+function DeviceModal({ member, endpoint, onClose }) {
   const a = ACCENT[member.id] || ACCENT.tia;
 
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [onClose]);
+
   return (
-    <div className={`bg-gray-900 border rounded-2xl overflow-hidden ${ROLE_COLOR[member.id] || 'border-gray-800'}`}>
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div
+        className="w-full max-w-5xl max-h-[90vh] overflow-y-auto bg-gray-950 border border-gray-800 rounded-2xl shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="sticky top-0 z-10 px-5 py-4 bg-gray-950/95 backdrop-blur border-b border-gray-800 flex items-start justify-between gap-4">
+          <div>
+            <p className={`text-xs font-semibold uppercase tracking-wider ${a.text}`}>Device Status</p>
+            <h2 className="text-lg font-bold text-white mt-1">{member.name}</h2>
+            <p className="text-xs text-gray-500 mt-0.5">{member.machine} / Live resource telemetry</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg text-gray-500 hover:text-white hover:bg-gray-800 transition"
+            aria-label="Close device status"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="p-5">
+          <ResourcePanel endpoint={endpoint} accent={RESOURCE_ACCENTS[member.id] || 'ocean'} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MemberCard({ member, onViewCalendar, onViewDevice, onDragStart, onDragOver, onDrop, isDragging }) {
+  const a = ACCENT[member.id] || ACCENT.tia;
+  const deviceEndpoint = DEVICE_ENDPOINTS[member.id];
+  const deviceDisabled = !deviceEndpoint;
+
+  return (
+    <div
+      draggable
+      onDragStart={() => onDragStart(member.id)}
+      onDragOver={(e) => onDragOver(e, member.id)}
+      onDrop={() => onDrop(member.id)}
+      className={`bg-gray-900 border rounded-2xl overflow-hidden cursor-move transition ${ROLE_COLOR[member.id] || 'border-gray-800'} ${isDragging ? 'opacity-60 scale-[0.98]' : ''}`}
+      title="Drag to reorder"
+    >
       {/* Header */}
       <div className="px-5 pt-5 pb-4 flex items-start justify-between">
         <div className="flex items-center gap-3">
@@ -59,7 +143,7 @@ function MemberCard({ member, onViewCalendar }) {
             <p className="text-xs text-gray-500">{member.role}</p>
           </div>
         </div>
-        <StatusBadge online={member.online} hasHost={member.has_host} />
+        <StatusBadge member={member} />
       </div>
 
       {/* Specs */}
@@ -83,6 +167,17 @@ function MemberCard({ member, onViewCalendar }) {
       {/* Footer actions */}
       <div className="px-4 pb-4 flex gap-2">
         <button
+          onClick={() => onViewDevice(member)}
+          disabled={deviceDisabled}
+          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition
+            ${deviceDisabled
+              ? 'bg-gray-800 text-gray-600 cursor-not-allowed'
+              : `${a.badge} hover:brightness-125 cursor-pointer`}`}
+        >
+          <Monitor className="w-3.5 h-3.5" />
+          {deviceDisabled ? 'Mobile Device' : 'Device'}
+        </button>
+        <button
           onClick={() => onViewCalendar(member.id)}
           disabled={!member.online}
           className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition
@@ -97,14 +192,21 @@ function MemberCard({ member, onViewCalendar }) {
       </div>
 
       {/* Connection hint for offline machines */}
-      {!member.online && member.has_host && (
+      {!member.online && MOBILE_MEMBER_IDS.has(member.id) && (
+        <div className="mx-4 mb-4 px-3 py-2 bg-purple-500/10 rounded-lg">
+          <p className="text-xs text-purple-200 flex items-center gap-1.5">
+            <Wifi className="w-3 h-3" /> Mobile machine — availability varies
+          </p>
+        </div>
+      )}
+      {!member.online && member.has_host && !MOBILE_MEMBER_IDS.has(member.id) && (
         <div className="mx-4 mb-4 px-3 py-2 bg-gray-800/60 rounded-lg">
           <p className="text-xs text-gray-600 flex items-center gap-1.5">
             <WifiOff className="w-3 h-3" /> SSH key auth needed to connect
           </p>
         </div>
       )}
-      {!member.online && !member.has_host && (
+      {!member.online && !member.has_host && !MOBILE_MEMBER_IDS.has(member.id) && (
         <div className="mx-4 mb-4 px-3 py-2 bg-gray-800/60 rounded-lg">
           <p className="text-xs text-gray-600 flex items-center gap-1.5">
             <WifiOff className="w-3 h-3" /> Tailscale IP not configured
@@ -118,19 +220,38 @@ function MemberCard({ member, onViewCalendar }) {
 export default function Team() {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [draggingId, setDraggingId] = useState(null);
+  const [activeDeviceMember, setActiveDeviceMember] = useState(null);
   const navigate = useNavigate();
 
   const fetchTeam = async () => {
     try {
       const res = await api.get('/crons/team');
-      setMembers(res.data.members || []);
+      setMembers(sortMembers(res.data.members || []));
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
 
   useEffect(() => { fetchTeam(); }, []);
 
-  const onlineCount = members.filter(m => m.online).length;
+  const onlineCount = useMemo(
+    () => members.filter(m => m.online || MOBILE_MEMBER_IDS.has(m.id)).length,
+    [members]
+  );
+
+  const moveMember = (fromId, toId) => {
+    if (!fromId || !toId || fromId === toId) return;
+    setMembers((prev) => {
+      const next = [...prev];
+      const from = next.findIndex((m) => m.id === fromId);
+      const to = next.findIndex((m) => m.id === toId);
+      if (from === -1 || to === -1) return prev;
+      const [item] = next.splice(from, 1);
+      next.splice(to, 0, item);
+      persistOrder(next);
+      return next;
+    });
+  };
 
   if (loading) return (
     <div className="flex items-center justify-center h-64 text-gray-500">
@@ -157,17 +278,26 @@ export default function Team() {
           <MemberCard
             key={m.id}
             member={m}
+            isDragging={draggingId === m.id}
+            onViewDevice={setActiveDeviceMember}
+            onDragStart={setDraggingId}
+            onDragOver={(e, id) => {
+              e.preventDefault();
+              if (draggingId && draggingId !== id) moveMember(draggingId, id);
+            }}
+            onDrop={() => setDraggingId(null)}
             onViewCalendar={(id) => navigate(`/calendar?agent=${id}`)}
           />
         ))}
       </div>
 
-      {/* Coming soon hint */}
-      <div className="mt-6 p-4 bg-gray-900 border border-gray-800 rounded-xl">
-        <p className="text-xs text-gray-600 text-center">
-          🔜 Machine Resources per member · Live process list · Cross-agent task coordination
-        </p>
-      </div>
+      {activeDeviceMember && DEVICE_ENDPOINTS[activeDeviceMember.id] && (
+        <DeviceModal
+          member={activeDeviceMember}
+          endpoint={DEVICE_ENDPOINTS[activeDeviceMember.id]}
+          onClose={() => setActiveDeviceMember(null)}
+        />
+      )}
     </div>
   );
 }

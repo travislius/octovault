@@ -23,7 +23,7 @@ const PAGE_SIZE = 30;
 export default function Browse() {
   const {
     files, setFiles, loading, setLoading,
-    viewMode, tags, setTags, selectedTag,
+    viewMode, setViewMode, tags, setTags, selectedTag,
     searchQuery, stats, setStats,
   } = useStore();
 
@@ -133,7 +133,7 @@ export default function Browse() {
       <TagBar onRefreshTags={refreshTags} />
 
       {/* Bulk operations bar */}
-      <BulkBar onRefresh={fetchFiles} />}
+      <BulkBar onRefresh={fetchFiles} />
 
       {/* Upload modal */}
       {showUpload && (
