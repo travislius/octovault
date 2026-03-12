@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Crosshair, ChevronRight, Pin, PinOff, Plus, RefreshCw,
-  Monitor, FolderOpen, CalendarDays, Users, Radio, Brain
+  Monitor, FolderOpen, CalendarDays, Users, Radio, Brain,
+  ListTodo, FolderKanban, Shield, Bot, Puzzle
 } from 'lucide-react';
 import api from '../api';
 
@@ -14,6 +15,11 @@ const WIDGET_DEFS = [
   { id: 'team',      label: 'Team',      icon: Users,        color: 'green',  endpoint: '/crons/team' },
   { id: 'sessions',  label: 'Sessions',  icon: Radio,        color: 'purple', endpoint: '/system/sessions' },
   { id: 'memory',    label: 'Memory',    icon: Brain,        color: 'blue',   endpoint: null },
+  { id: 'tasks',     label: 'Tasks',     icon: ListTodo,     color: 'red',    endpoint: '/tasks' },
+  { id: 'projects',  label: 'Projects',  icon: FolderKanban, color: 'amber',  endpoint: '/system/projects' },
+  { id: 'monitor',   label: 'Monitor',   icon: Shield,       color: 'green',  endpoint: '/system/health-check' },
+  { id: 'agents',    label: 'Agents',    icon: Bot,          color: 'purple', endpoint: '/system/agents' },
+  { id: 'skills',    label: 'Skills',    icon: Puzzle,       color: 'ocean',  endpoint: '/system/skills' },
 ];
 
 const COLORS = {
@@ -72,7 +78,7 @@ function WidgetCard({ def, data, onUnpin, dragHandlers }) {
   const c = COLORS[def.color];
   const Icon = def.icon;
 
-  const routes = { system: '/resources', documents: '/files', schedule: '/calendar', team: '/team', sessions: '/sessions', memory: '/memory' };
+  const routes = { system: '/team', documents: '/files', schedule: '/calendar', team: '/team', sessions: '/sessions', memory: '/memory', tasks: '/tasks', projects: '/projects', monitor: '/monitor', agents: '/agents', skills: '/skills' };
 
   const renderContent = () => {
     switch (def.id) {
@@ -146,6 +152,61 @@ function WidgetCard({ def, data, onUnpin, dragHandlers }) {
             <div>🌿 Soul · 🧠 Memory · 📝 Today</div>
           </div>
         );
+      case 'tasks': {
+        const tasks = data?.tasks;
+        if (!tasks) return <Shimmer />;
+        const open = tasks.filter(t => t.status !== 'done' && t.status !== 'cancelled').length;
+        const done = tasks.filter(t => t.status === 'done').length;
+        return (
+          <>
+            <div className="text-lg font-bold text-white">{open}</div>
+            <div className="text-[10px] text-gray-500">open · {done} done</div>
+          </>
+        );
+      }
+      case 'projects': {
+        if (!data?.content) return <Shimmer />;
+        const sections = (data.content.match(/^## /gm) || []).length;
+        return (
+          <>
+            <div className="text-lg font-bold text-white">{sections}</div>
+            <div className="text-[10px] text-gray-500">active projects</div>
+          </>
+        );
+      }
+      case 'monitor': {
+        if (!data?.sites) return <Shimmer />;
+        const allUp = data.all_ok;
+        const down = data.sites.filter(s => !s.ok).length;
+        return (
+          <>
+            <div className={`text-lg font-bold ${allUp ? 'text-green-400' : 'text-red-400'}`}>
+              {allUp ? '✓ All Up' : `${down} Down`}
+            </div>
+            <div className="text-[10px] text-gray-500">{data.sites.length} sites monitored</div>
+          </>
+        );
+      }
+      case 'agents': {
+        if (!data?.agents) return <Shimmer />;
+        return (
+          <>
+            <div className="text-lg font-bold text-white">{data.agents.length}</div>
+            <div className="text-[10px] text-gray-500">registered agents</div>
+          </>
+        );
+      }
+      case 'skills': {
+        if (!data?.skills) return <Shimmer />;
+        const user = data.skills.filter(s => s.source === 'user').length;
+        const builtin = data.skills.filter(s => s.source === 'builtin').length;
+        return (
+          <>
+            <div className="text-lg font-bold text-white">{data.total}</div>
+            <div className="text-[10px] text-gray-500">{user} custom · {builtin} builtin</div>
+          </>
+        );
+      }
       default: return null;
     }
   };
