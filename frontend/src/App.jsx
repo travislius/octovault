@@ -14,6 +14,7 @@ import Memory from './pages/Memory';
 import Sessions from './pages/Sessions';
 import Tasks from './pages/Tasks';
 import Agents from './pages/Agents';
+import Monitor from './pages/Monitor';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 
@@ -80,6 +81,7 @@ export default function App() {
             <Route path="/sessions" element={<Sessions />} />
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/agents" element={<Agents />} />
+            <Route path="/monitor" element={<Monitor />} />
           </Route>
         </Route>
         <Route path="*" element={<Navigate to="/" replace />} />

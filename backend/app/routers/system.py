@@ -62,6 +62,60 @@ def _fmt_bytes(n: int) -> dict:
     return {"bytes": n * 1024 ** 4, "human": f"{n:.1f} PB"}
 
 
+MONITORED_SITES = [
+    {"id": "ai-blog",       "name": "OctoDance AI Blog",  "url": "https://ai.octodance.com"},
+    {"id": "lazyai",        "name": "Lazy AI Studio",     "url": "https://lazyaistudio.com"},
+    {"id": "wordmonsters",  "name": "Word Monsters",      "url": "https://wordmonsters.octodance.com"},
+    {"id": "landing",       "name": "OctoDance Landing",  "url": "https://www.octodance.com"},
+    {"id": "sparknexus",    "name": "SparkNexus",         "url": "https://sparknexus.ai"},
+]
+
+
+@router.get("/health-check", tags=["system"])
+def health_check(current_user=Depends(get_current_user)):
+    """Check all monitored production sites and return status."""
+    import urllib.request
+    import urllib.error
+
+    results = []
+    for site in MONITORED_SITES:
+        t0 = time.time()
+        try:
+            req = urllib.request.Request(site["url"], method="GET")
+            req.add_header("User-Agent", "ClawMissions-HealthCheck/1.0")
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                status = resp.status
+            latency = int((time.time() - t0) * 1000)
+            results.append({
+                **site,
+                "status": status,
+                "ok": 200 <= status < 400,
+                "latency_ms": latency,
+            })
+        except urllib.error.HTTPError as e:
+            latency = int((time.time() - t0) * 1000)
+            results.append({
+                **site,
+                "status": e.code,
+                "ok": False,
+                "latency_ms": latency,
+            })
+        except Exception as e:
+            results.append({
+                **site,
+                "status": 0,
+                "ok": False,
+                "latency_ms": None,
+                "error": str(e)[:200],
+            })
+
+    return {
+        "sites": results,
+        "all_ok": all(r["ok"] for r in results),
+        "checked_at": int(time.time() * 1000),
+    }
+
+
 @router.get("/resources", tags=["system"])
 def get_resources(current_user=Depends(get_current_user)):
     # Prefer host stats file written by sync_host_stats.sh (accurate Mac Mini data)
